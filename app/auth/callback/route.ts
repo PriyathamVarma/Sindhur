@@ -3,15 +3,16 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import jwt, { type SignOptions } from "jsonwebtoken";
 import { createClient } from "@/utils/supabase/server";
+import { getAppOrigin } from "@/utils/app-url";
 import { mongoDB } from "@/shared/lib/db/mongo";
 import UserModel from "@/shared/models/mongodb/users/user";
 
 function getRedirectOrigin(request: Request, origin: string) {
   const forwardedHost = request.headers.get("x-forwarded-host");
   if (process.env.NODE_ENV !== "development" && forwardedHost) {
-    return `https://${forwardedHost}`;
+    return getAppOrigin(`https://${forwardedHost}`);
   }
-  return origin;
+  return getAppOrigin(origin);
 }
 
 function getSafeNext(url: URL) {
