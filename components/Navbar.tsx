@@ -50,6 +50,14 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
+          <a
+            href="/admin"
+            className={`text-[13px] font-medium tracking-wide transition-colors hover:text-orange-500 border rounded-full px-3 py-1 ${
+              scrolled ? "text-gray-500 border-gray-200 hover:border-orange-300" : "text-white/60 border-white/20 hover:border-white/40"
+            }`}
+          >
+            Admin
+          </a>
         </nav>
 
         {/* CTA */}

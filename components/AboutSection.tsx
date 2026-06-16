@@ -20,7 +20,7 @@ export default function AboutSection() {
             </h2>
             <div className="mt-6 space-y-4 text-gray-600 text-[16px] leading-relaxed">
               <p>
-                Founded in 2009, Sindhur Exports has grown from a regional commodities trader to one of India's most reliable multi-category export houses. Headquartered in Hyderabad, we operate across 6 product verticals and serve buyers in over 50 countries across 6 continents.
+                Founded in 2009, Sindhur Exports has grown from a regional commodities trader to one of India's most reliable multi-category export houses. Headquartered in Visakhapatnam, Andhra Pradesh, we specialize in agri commodities, spices, organic dehydrated powders and coconut products — serving buyers in over 50 countries across 6 continents.
               </p>
               <p>
                 Our strength lies in a vertically integrated supply chain — from farm or factory to the final port of destination. We maintain strategic partnerships with over 200 verified Indian manufacturers, allowing us to offer competitive pricing without compromising quality.

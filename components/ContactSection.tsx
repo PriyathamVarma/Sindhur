@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 interface FormState {
   name: string;
@@ -12,12 +13,7 @@ interface FormState {
 }
 
 const initialFormState: FormState = {
-  name: "",
-  company: "",
-  email: "",
-  country: "",
-  product: "",
-  message: "",
+  name: "", company: "", email: "", country: "", product: "", message: "",
 };
 
 const CONTACT_INFO = [
@@ -28,8 +24,8 @@ const CONTACT_INFO = [
       </svg>
     ),
     label: "Email",
-    value: "trade@sindhurexports.com",
-    href: "mailto:trade@sindhurexports.com",
+    value: "varma.v.business@gmail.com",
+    href: "mailto:varma.v.business@gmail.com",
   },
   {
     icon: (
@@ -38,8 +34,8 @@ const CONTACT_INFO = [
       </svg>
     ),
     label: "Phone / WhatsApp",
-    value: "+91 98765 43210",
-    href: "tel:+919876543210",
+    value: "+91 73308 10209",
+    href: "tel:+917330810209",
   },
   {
     icon: (
@@ -49,27 +45,44 @@ const CONTACT_INFO = [
       </svg>
     ),
     label: "Office Address",
-    value: "Plot 42, APIIC Industrial Estate, Uppal, Hyderabad – 500039, Telangana, India",
-    href: "https://maps.google.com",
+    value: "Visakhapatnam, Andhra Pradesh – 530001, India",
+    href: "https://maps.google.com/?q=Visakhapatnam,Andhra+Pradesh,India",
   },
 ];
 
 export default function ContactSection() {
-  const [form, setForm] = useState<FormState>(initialFormState);
+  const [form, setForm]           = useState<FormState>(initialFormState);
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]     = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    if (!form.name.trim() || !form.email.trim()) return;
     setLoading(true);
-    setTimeout(() => {
+
+    try {
+      const res = await fetch("/api/v1/quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setSubmitted(true);
+        toast.success("Inquiry received! We'll respond within 24 hours.");
+      } else {
+        toast.error(data.message || "Failed to send. Please try again.");
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
       setLoading(false);
-      setSubmitted(true);
-    }, 1500);
+    }
   };
 
   return (
@@ -141,7 +154,7 @@ export default function ContactSection() {
                 </p>
                 <button
                   onClick={() => { setSubmitted(false); setForm(initialFormState); }}
-                  className="mt-8 text-[14px] font-semibold text-orange-500 hover:text-orange-600 transition-colors"
+                  className="mt-8 text-[14px] font-semibold text-orange-500 hover:text-orange-600 transition"
                 >
                   Send Another Message
                 </button>
@@ -206,12 +219,12 @@ export default function ContactSection() {
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none text-[14px] text-gray-800 bg-white transition-all appearance-none cursor-pointer"
                   >
                     <option value="">Select a product category</option>
-                    <option>Basmati Rice</option>
+                    <option>Fresh Coconuts</option>
+                    <option>Coconut By-Products</option>
+                    <option>Basmati & Non-Basmati Rice</option>
+                    <option>Organic Dehydrated Powders</option>
                     <option>Spices & Masalas</option>
-                    <option>Textiles & Fabrics</option>
-                    <option>Handicrafts & Décor</option>
-                    <option>Organic Pulses</option>
-                    <option>Industrial Chemicals</option>
+                    <option>Herbal & Botanical Extracts</option>
                     <option>Other / Multiple Categories</option>
                   </select>
                 </div>
