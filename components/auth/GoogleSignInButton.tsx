@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/utils/supabase/client";
-import { getAppOrigin } from "@/utils/app-url";
 import toast from "react-hot-toast";
 
 type Props = {
@@ -19,22 +17,7 @@ export default function GoogleSignInButton({
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const redirectTo = `${getAppOrigin()}/auth/callback?next=${encodeURIComponent(nextPath)}`;
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo,
-          queryParams: {
-            prompt: "select_account",
-          },
-        },
-      });
-
-      if (error) {
-        toast.error(error.message || "Google sign-in failed");
-        setLoading(false);
-      }
+      window.location.assign(`/api/v1/auth/google?next=${encodeURIComponent(nextPath)}`);
     } catch {
       toast.error("Google sign-in failed. Please try again.");
       setLoading(false);

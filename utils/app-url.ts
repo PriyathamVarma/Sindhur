@@ -3,7 +3,12 @@ const LOCAL_ORIGIN = "http://localhost:3000";
 
 function cleanOrigin(origin?: string | null) {
   if (!origin) return "";
-  return origin.trim().replace(/\/+$/, "");
+  const value = origin.trim().replace(/^["']|["']$/g, "");
+  try {
+    return new URL(value).origin.replace(/\/+$/, "");
+  } catch {
+    return value.replace(/\/+$/, "");
+  }
 }
 
 function isLocalOrigin(origin: string) {
@@ -11,15 +16,22 @@ function isLocalOrigin(origin: string) {
 }
 
 export function getAppOrigin(fallbackOrigin?: string) {
-  const envOrigin = cleanOrigin(process.env.NEXT_PUBLIC_APP_URL);
-
-  if (envOrigin && !(process.env.NODE_ENV === "production" && isLocalOrigin(envOrigin))) {
-    return envOrigin;
+  if (typeof window !== "undefined") {
+    const browserOrigin = cleanOrigin(window.location.origin);
+    if (browserOrigin) {
+      return isLocalOrigin(browserOrigin) ? LOCAL_ORIGIN : PRODUCTION_ORIGIN;
+    }
   }
 
-  if (process.env.NODE_ENV === "production") return PRODUCTION_ORIGIN;
+  const fallback = cleanOrigin(fallbackOrigin);
+  if (fallback) {
+    return isLocalOrigin(fallback) ? LOCAL_ORIGIN : PRODUCTION_ORIGIN;
+  }
 
-  if (typeof window !== "undefined") return cleanOrigin(window.location.origin) || LOCAL_ORIGIN;
+  const envOrigin = cleanOrigin(process.env.NEXT_PUBLIC_APP_URL);
+  if (envOrigin) {
+    return isLocalOrigin(envOrigin) ? LOCAL_ORIGIN : PRODUCTION_ORIGIN;
+  }
 
-  return cleanOrigin(fallbackOrigin) || LOCAL_ORIGIN;
+  return process.env.NODE_ENV === "production" ? PRODUCTION_ORIGIN : LOCAL_ORIGIN;
 }
