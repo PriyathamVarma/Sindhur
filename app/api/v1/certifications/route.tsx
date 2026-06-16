@@ -3,6 +3,7 @@ import { mongoDB } from "@/shared/lib/db/mongo";
 import CertificationModel from "@/shared/models/mongodb/certifications/certification";
 import { verifyToken } from "../utils/verifyToken";
 import { success, failure } from "../utils/responses";
+import { cacheDel, CACHE_KEYS } from "@/utils/redis";
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
       );
     }
     const cert = await CertificationModel.create(body);
+    await cacheDel(CACHE_KEYS.CERTS_ACTIVE);
     return NextResponse.json(success(cert, "Certification created"), { status: 201 });
   } catch (err: any) {
     return NextResponse.json(failure(err?.message), { status: 500 });

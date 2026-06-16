@@ -4,8 +4,8 @@ import BlogPostModel from "@/shared/models/mongodb/blog/blogPost";
 import { verifyToken } from "../utils/verifyToken";
 import { success, failure } from "../utils/responses";
 import { slugify } from "@/shared/lib/utils";
+import { cacheDel, CACHE_KEYS } from "@/utils/redis";
 
-// Public: list published posts
 export async function GET(req: NextRequest) {
   try {
     await mongoDB();
@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
     const page  = Number(searchParams.get("page") || "1");
     const limit = Number(searchParams.get("limit") || "12");
 
-    // Admin mode requires auth
     if (adminMode) {
       const auth = await verifyToken(req);
       if (auth instanceof NextResponse) return auth;
@@ -26,7 +25,7 @@ export async function GET(req: NextRequest) {
 
     const [items, total] = await Promise.all([
       BlogPostModel.find(filter)
-        .select(adminMode ? "-content" : "-content")
+        .select("-content")
         .sort({ publishedAt: -1, createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -40,7 +39,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Admin: create a post
 export async function POST(req: NextRequest) {
   const auth = await verifyToken(req);
   if (auth instanceof NextResponse) return auth;
@@ -57,8 +55,6 @@ export async function POST(req: NextRequest) {
     }
 
     let slug = body.slug?.trim() || slugify(title);
-
-    // Ensure slug uniqueness
     const existing = await BlogPostModel.findOne({ slug });
     if (existing) slug = `${slug}-${Date.now()}`;
 
@@ -74,9 +70,9 @@ export async function POST(req: NextRequest) {
       publishedAt: body.status === "published" ? new Date() : undefined,
     });
 
+    await cacheDel(CACHE_KEYS.BLOG_LIST);
     return NextResponse.json(success(post, "Post created"), { status: 201 });
   } catch (err: any) {
-    console.error("blog POST:", err);
     return NextResponse.json(failure(err?.message), { status: 500 });
   }
 }

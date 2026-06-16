@@ -4,6 +4,7 @@ import ProductModel from "@/shared/models/mongodb/products/product";
 import { verifyToken } from "../utils/verifyToken";
 import { success, failure } from "../utils/responses";
 import { slugify } from "@/shared/lib/utils";
+import { cacheDel, CACHE_KEYS } from "@/utils/redis";
 
 export async function GET(req: NextRequest) {
   try {
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest) {
     if (exists) slug = `${slug}-${Date.now()}`;
 
     const product = await ProductModel.create({ ...body, slug });
+    await cacheDel(CACHE_KEYS.PRODUCTS_LIST);
     return NextResponse.json(success(product, "Product created"), { status: 201 });
   } catch (err: any) {
     return NextResponse.json(failure(err?.message), { status: 500 });

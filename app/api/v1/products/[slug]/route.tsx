@@ -3,6 +3,7 @@ import { mongoDB } from "@/shared/lib/db/mongo";
 import ProductModel from "@/shared/models/mongodb/products/product";
 import { verifyToken } from "../../utils/verifyToken";
 import { success, failure } from "../../utils/responses";
+import { cacheDel, CACHE_KEYS } from "@/utils/redis";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
@@ -46,6 +47,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     ).lean();
 
     if (!product) return NextResponse.json(failure("Product not found"), { status: 404 });
+    await cacheDel(CACHE_KEYS.PRODUCTS_LIST, CACHE_KEYS.PRODUCT(slug));
     return NextResponse.json(success(product, "Product updated"));
   } catch (err: any) {
     return NextResponse.json(failure(err?.message), { status: 500 });
@@ -62,6 +64,7 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
     await mongoDB();
     const product = await ProductModel.findOneAndDelete({ slug });
     if (!product) return NextResponse.json(failure("Product not found"), { status: 404 });
+    await cacheDel(CACHE_KEYS.PRODUCTS_LIST, CACHE_KEYS.PRODUCT(slug));
     return NextResponse.json(success(null, "Product deleted"));
   } catch (err: any) {
     return NextResponse.json(failure(err?.message), { status: 500 });

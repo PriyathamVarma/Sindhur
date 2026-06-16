@@ -4,10 +4,10 @@ import BlogPostModel from "@/shared/models/mongodb/blog/blogPost";
 import { verifyToken } from "../../utils/verifyToken";
 import { success, failure } from "../../utils/responses";
 import { slugify } from "@/shared/lib/utils";
+import { cacheDel, CACHE_KEYS } from "@/utils/redis";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
-// Public: get single published post by slug
 export async function GET(req: NextRequest, { params }: Ctx) {
   const { slug } = await params;
 
@@ -32,7 +32,6 @@ export async function GET(req: NextRequest, { params }: Ctx) {
   }
 }
 
-// Admin: update post
 export async function PATCH(req: NextRequest, { params }: Ctx) {
   const auth = await verifyToken(req);
   if (auth instanceof NextResponse) return auth;
@@ -66,13 +65,13 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     ).lean();
 
     if (!updated) return NextResponse.json(failure("Post not found"), { status: 404 });
+    await cacheDel(CACHE_KEYS.BLOG_LIST, CACHE_KEYS.BLOG_POST(slug));
     return NextResponse.json(success(updated, "Post updated"));
   } catch (err: any) {
     return NextResponse.json(failure(err?.message), { status: 500 });
   }
 }
 
-// Admin: delete post
 export async function DELETE(req: NextRequest, { params }: Ctx) {
   const auth = await verifyToken(req);
   if (auth instanceof NextResponse) return auth;
@@ -83,6 +82,7 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
     await mongoDB();
     const deleted = await BlogPostModel.findOneAndDelete({ slug }).lean();
     if (!deleted) return NextResponse.json(failure("Post not found"), { status: 404 });
+    await cacheDel(CACHE_KEYS.BLOG_LIST, CACHE_KEYS.BLOG_POST(slug));
     return NextResponse.json(success(null, "Post deleted"));
   } catch (err: any) {
     return NextResponse.json(failure(err?.message), { status: 500 });

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     await mongoDB();
     const { searchParams } = new URL(req.url);
     const page    = Math.max(1, parseInt(searchParams.get("page")  || "1"));
-    const limit   = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20")));
+    const limit   = Math.min(500, Math.max(1, parseInt(searchParams.get("limit") || "20")));
     const status  = searchParams.get("status");
     const country = searchParams.get("country");
     const product = searchParams.get("product");

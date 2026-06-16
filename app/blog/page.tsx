@@ -3,6 +3,7 @@ import type { IBlogPost } from "@/shared/interfaces/mongodb/blog/blogPost";
 import { formatDate } from "@/shared/lib/utils";
 import { mongoDB } from "@/shared/lib/db/mongo";
 import BlogPostModel from "@/shared/models/mongodb/blog/blogPost";
+import { cacheGet, cacheSet, CACHE_KEYS, TTL } from "@/utils/redis";
 
 export const metadata: Metadata = {
   title: "Blog & Export Insights — Sindhur Exports",
@@ -15,6 +16,9 @@ export const metadata: Metadata = {
 };
 
 async function getPosts(): Promise<IBlogPost[]> {
+  const cached = await cacheGet<IBlogPost[]>(CACHE_KEYS.BLOG_LIST);
+  if (cached) return cached;
+
   try {
     await mongoDB();
     const items = await BlogPostModel.find({ status: "published" })
@@ -22,7 +26,9 @@ async function getPosts(): Promise<IBlogPost[]> {
       .sort({ publishedAt: -1 })
       .limit(24)
       .lean();
-    return items as unknown as IBlogPost[];
+    const result = items as unknown as IBlogPost[];
+    await cacheSet(CACHE_KEYS.BLOG_LIST, result, TTL.LIST);
+    return result;
   } catch {
     return [];
   }

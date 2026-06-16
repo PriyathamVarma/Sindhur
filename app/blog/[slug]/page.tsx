@@ -4,14 +4,22 @@ import type { IBlogPost } from "@/shared/interfaces/mongodb/blog/blogPost";
 import { formatDate } from "@/shared/lib/utils";
 import { mongoDB } from "@/shared/lib/db/mongo";
 import BlogPostModel from "@/shared/models/mongodb/blog/blogPost";
+import { cacheGet, cacheSet, CACHE_KEYS, TTL } from "@/utils/redis";
 
 type Props = { params: Promise<{ slug: string }> };
 
 async function getPost(slug: string): Promise<IBlogPost | null> {
+  const key    = CACHE_KEYS.BLOG_POST(slug);
+  const cached = await cacheGet<IBlogPost>(key);
+  if (cached) return cached;
+
   try {
     await mongoDB();
     const post = await BlogPostModel.findOne({ slug, status: "published" }).lean();
-    return post as unknown as IBlogPost | null;
+    if (!post) return null;
+    const result = post as unknown as IBlogPost;
+    await cacheSet(key, result, TTL.DETAIL);
+    return result;
   } catch {
     return null;
   }
