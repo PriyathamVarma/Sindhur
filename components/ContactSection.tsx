@@ -86,10 +86,10 @@ export default function ContactSection() {
   };
 
   return (
-    <section id="contact" className="py-28 bg-gray-50">
+    <section id="contact" className="py-16 md:py-28 bg-gray-50">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
+        <div className="text-center max-w-2xl mx-auto mb-10 md:mb-16">
           <span className="text-orange-500 text-[12px] font-bold tracking-[0.2em] uppercase">Contact Us</span>
           <h2 className="mt-3 text-4xl md:text-5xl font-black text-gray-900 leading-tight tracking-tight">
             Start Your Export Journey
@@ -99,7 +99,7 @@ export default function ContactSection() {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-5 gap-10">
+        <div className="grid lg:grid-cols-5 gap-8 lg:gap-10">
           {/* Left: Info */}
           <div className="lg:col-span-2 space-y-6">
             {CONTACT_INFO.map((item) => (
@@ -142,7 +142,7 @@ export default function ContactSection() {
           </div>
 
           {/* Right: Form */}
-          <div className="lg:col-span-3 bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
+          <div className="lg:col-span-3 bg-white rounded-3xl border border-gray-100 shadow-sm p-5 sm:p-8">
             {submitted ? (
               <div className="flex flex-col items-center justify-center h-full py-16 text-center">
                 <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center text-3xl mb-5">

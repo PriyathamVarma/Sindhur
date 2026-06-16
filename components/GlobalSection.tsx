@@ -4,7 +4,7 @@ const REGIONS = ["Americas", "Europe", "Middle East", "Asia Pacific", "Africa"];
 
 export default function GlobalSection() {
   return (
-    <section id="global" className="py-28 bg-gray-950 relative overflow-hidden">
+    <section id="global" className="py-16 md:py-28 bg-gray-950 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 opacity-5">
         <svg width="100%" height="100%" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
@@ -20,7 +20,7 @@ export default function GlobalSection() {
 
       <div className="relative max-w-7xl mx-auto px-6">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
+        <div className="text-center max-w-2xl mx-auto mb-10 md:mb-16">
           <span className="text-orange-400 text-[12px] font-bold tracking-[0.2em] uppercase">Global Reach</span>
           <h2 className="mt-3 text-4xl md:text-5xl font-black text-white leading-tight tracking-tight">
             We Export to{" "}
@@ -58,7 +58,7 @@ export default function GlobalSection() {
         </div>
 
         {/* Bottom stats */}
-        <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="mt-12 md:mt-20 grid grid-cols-2 md:grid-cols-4 gap-6">
           {[
             { value: "50+", label: "Countries", desc: "Active trade relationships" },
             { value: "6", label: "Continents", desc: "Global footprint" },

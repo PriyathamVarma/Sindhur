@@ -8,9 +8,9 @@ const CERTIFICATIONS = [
 
 export default function AboutSection() {
   return (
-    <section id="about" className="py-28 bg-white">
+    <section id="about" className="py-16 md:py-28 bg-white">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           {/* Left: Text */}
           <div>
             <span className="text-orange-500 text-[12px] font-bold tracking-[0.2em] uppercase">About Us</span>
@@ -57,7 +57,7 @@ export default function AboutSection() {
           </div>
 
           {/* Right: Image collage */}
-          <div className="relative">
+          <div className="relative mt-4 lg:mt-0">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-4">
                 <img
@@ -86,7 +86,7 @@ export default function AboutSection() {
             </div>
 
             {/* Floating card */}
-            <div className="absolute -bottom-5 -left-5 bg-white rounded-2xl shadow-xl shadow-gray-200 border border-gray-100 p-5 flex items-center gap-4">
+            <div className="absolute bottom-3 left-3 sm:-bottom-5 sm:-left-5 bg-white rounded-2xl shadow-xl shadow-gray-200 border border-gray-100 p-4 sm:p-5 flex items-center gap-3 sm:gap-4 max-w-[calc(100%-1.5rem)]">
               <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center text-2xl flex-shrink-0">
                 🏆
               </div>

@@ -42,10 +42,10 @@ const LOGOS = [
 
 export default function TestimonialsSection() {
   return (
-    <section className="py-28 bg-white">
+    <section className="py-16 md:py-28 bg-white">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
+        <div className="text-center max-w-2xl mx-auto mb-10 md:mb-16">
           <span className="text-orange-500 text-[12px] font-bold tracking-[0.2em] uppercase">Client Trust</span>
           <h2 className="mt-3 text-4xl md:text-5xl font-black text-gray-900 leading-tight tracking-tight">
             What Our Global Clients Say
@@ -63,7 +63,7 @@ export default function TestimonialsSection() {
         </div>
 
         {/* Trust strip */}
-        <div className="mt-20 text-center">
+        <div className="mt-12 md:mt-20 text-center">
           <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-8">
             Trusted by companies across the globe
           </p>

@@ -1,6 +1,6 @@
-# Sindhur Exports — Official Website & Admin Platform
+# Sindhur Exports — B2B Export Platform
 
-Full-stack marketing website and admin panel for **Sindhur Exports**, a Visakhapatnam-based Indian B2B export company. Built with Next.js 16 App Router, React 19, MongoDB Atlas, and Tailwind CSS v4.
+Full-stack B2B export business platform for **Sindhur Exports**, a Visakhapatnam-based Indian export company. Built with Next.js 16 App Router, React 19, MongoDB Atlas, and Tailwind CSS v4.
 
 ---
 
@@ -17,6 +17,7 @@ Full-stack marketing website and admin panel for **Sindhur Exports**, a Visakhap
 - [Admin Panel](#admin-panel)
 - [Blog System](#blog-system)
 - [Authentication](#authentication)
+- [WhatsApp Integration](#whatsapp-integration)
 - [Environment Variables](#environment-variables)
 - [Deployment](#deployment)
 - [Business Information](#business-information)
@@ -25,11 +26,13 @@ Full-stack marketing website and admin panel for **Sindhur Exports**, a Visakhap
 
 ## Overview
 
-The platform has two audiences:
+The platform serves three audiences:
 
-**Public** — International buyers browse products, global reach, export process, and submit quote requests via the contact form. A `/blog` section provides SEO-rich trade insight articles.
+**Public / International Buyers** — Browse the product catalog at `/products`, view detailed product pages at `/products/[slug]`, submit RFQ forms at `/request-quote`, download company brochures and catalogs at `/downloads`, and view trust & certifications at `/trust`. A floating WhatsApp button appears on all public pages.
 
-**Admin** — Staff log in at `/login`, manage quote requests at `/admin/quotes`, and write/publish blog articles at `/admin/blog`. All admin routes are protected by JWT middleware at the Edge layer.
+**Blog readers** — `/blog` provides SEO-rich trade insight articles for organic discovery.
+
+**Admin / Staff** — Log in at `/login`, then manage the full B2B pipeline: product catalog, RFQ pipeline, certifications, downloadable resources, download leads, legacy quote requests, and blog articles. All admin routes are JWT-protected at the Edge layer.
 
 ---
 
@@ -60,7 +63,7 @@ The platform has two audiences:
 ### Prerequisites
 
 - Node.js 18+
-- A MongoDB Atlas cluster with the `syndhur-exports` database (already configured in `.env.local`)
+- A MongoDB Atlas cluster with the `syndhur-exports` database (configured in `.env.local`)
 
 ### Install & run
 
@@ -95,9 +98,17 @@ Sindhur/
 │   │   └── register/page.tsx           # Admin registration form
 │   │
 │   ├── admin/                          # JWT-protected panel (middleware guards entry)
-│   │   ├── layout.tsx                  # Sidebar layout + client-side auth guard
-│   │   ├── page.tsx                    # Dashboard: stat cards + recent quotes
-│   │   ├── quotes/page.tsx             # Quote request manager
+│   │   ├── layout.tsx                  # Sidebar layout + client-side auth guard (8 nav items)
+│   │   ├── page.tsx                    # Dashboard: 8 stat cards + quick actions + recent quotes
+│   │   ├── products/
+│   │   │   ├── page.tsx                # Product list with filter tabs, publish toggle, edit/delete
+│   │   │   ├── new/page.tsx            # Product creation form (8 sections, dynamic spec rows)
+│   │   │   └── [id]/edit/page.tsx      # Edit product (URL uses _id; PATCH uses slug)
+│   │   ├── rfq/page.tsx                # RFQ pipeline: status tabs, search, expandable accordions
+│   │   ├── certifications/page.tsx     # Certifications list + slide-in add/edit panel
+│   │   ├── downloads/page.tsx          # Downloads list + slide-in add/edit panel
+│   │   ├── download-leads/page.tsx     # View-only leads table with pagination
+│   │   ├── quotes/page.tsx             # Legacy quote request manager
 │   │   └── blog/
 │   │       ├── page.tsx                # Blog post list
 │   │       ├── new/page.tsx            # Create post form
@@ -112,33 +123,60 @@ Sindhur/
 │   │   │   ├── register/route.tsx      # POST: bcrypt hash → create User doc
 │   │   │   ├── logout/route.tsx        # POST: clear "token" cookie (maxAge: 0)
 │   │   │   └── me/route.tsx            # GET (JWT): return user sans passwordHash
+│   │   ├── products/
+│   │   │   ├── route.tsx               # GET (public/JWT): list with search/category/page; POST (JWT): create
+│   │   │   └── [slug]/route.tsx        # GET (public/JWT): single; PATCH (JWT): update; DELETE (JWT)
+│   │   ├── rfq/
+│   │   │   ├── route.tsx               # POST (public): create RFQ; GET (JWT): list with filters
+│   │   │   └── [id]/route.tsx          # PATCH (JWT): status + adminNotes only; DELETE (JWT)
+│   │   ├── certifications/
+│   │   │   ├── route.tsx               # GET (public/JWT): list; POST (JWT): create
+│   │   │   └── [id]/route.tsx          # PATCH (JWT): update; DELETE (JWT)
+│   │   ├── downloads/
+│   │   │   ├── route.tsx               # GET (public/JWT): list; POST (JWT): create
+│   │   │   └── [id]/route.tsx          # PATCH (JWT): update; DELETE (JWT)
+│   │   ├── download-leads/
+│   │   │   ├── route.tsx               # POST (public): capture lead + return fileUrl; GET (JWT): list
+│   │   │   └── [id]/route.tsx          # DELETE (JWT)
 │   │   ├── quotes/
 │   │   │   ├── route.tsx               # POST (public): create; GET (JWT): list paginated
-│   │   │   └── [id]/route.tsx          # PATCH (JWT): status/notes; DELETE (JWT)
+│   │   │   └── [id]/route.tsx          # PATCH/DELETE (JWT)
 │   │   ├── blog/
 │   │   │   ├── route.tsx               # GET (public/JWT): list; POST (JWT): create
-│   │   │   └── [slug]/route.tsx        # GET (public): single; PATCH/DELETE (JWT)
+│   │   │   └── [slug]/route.tsx        # GET (public/JWT): single; PATCH/DELETE (JWT)
 │   │   └── admin/
-│   │       └── stats/route.tsx         # GET (JWT): aggregated counts + 5 recent quotes
+│   │       └── stats/route.tsx         # GET (JWT): all platform counts + 5 recent quotes
 │   │
+│   ├── products/
+│   │   ├── page.tsx                    # Server Component: fetches products, passes to ProductCatalog
+│   │   └── [slug]/page.tsx             # Server Component: full product page with generateMetadata
+│   ├── request-quote/
+│   │   └── page.tsx                    # Client Component (wrapped in Suspense): RFQ form
+│   ├── trust/
+│   │   └── page.tsx                    # Server Component: certifications + QA steps + stats
+│   ├── downloads/
+│   │   └── page.tsx                    # Client Component: download catalog with lead capture modal
 │   ├── blog/
 │   │   ├── page.tsx                    # Server Component: published post grid
 │   │   └── [slug]/page.tsx             # Server Component: full post + generateMetadata
 │   │
-│   ├── layout.tsx                      # Root: fonts, UserProvider, Toaster
+│   ├── layout.tsx                      # Root: fonts, UserProvider, Toaster, WhatsAppButton
 │   ├── page.tsx                        # Homepage: all marketing sections + SEO metadata
 │   └── globals.css                     # Tailwind v4 import + @theme {} color tokens
 │
-├── components/                         # Marketing section components
+├── components/
 │   ├── Navbar.tsx                      # Client: scroll-aware, mobile hamburger, Blog + Admin links
 │   ├── HeroSection.tsx                 # Client: parallax scroll via useRef
 │   ├── AboutSection.tsx                # Server: story, certifications, image collage
-│   ├── ProductsSection.tsx             # Server: 6-card product grid
+│   ├── ProductsSection.tsx             # Server: 6-card static product grid (homepage only)
+│   ├── ProductCatalog.tsx              # Client: interactive filter + search over server-fetched products
+│   ├── ProductGallery.tsx              # Client: image gallery with prev/next and thumbnail strip
+│   ├── WhatsAppButton.tsx              # Client: floating sticky button (hides on admin/login routes)
 │   ├── GlobalSection.tsx               # Server: countries grouped by region
 │   ├── WhyChooseSection.tsx            # Server: sticky left panel + 2-col card grid
 │   ├── ProcessSection.tsx              # Server: 5-step horizontal timeline
 │   ├── TestimonialsSection.tsx         # Server: 3 testimonial cards + brand strip
-│   ├── ContactSection.tsx              # Client: form → POST /api/v1/quotes (real API)
+│   ├── ContactSection.tsx              # Client: form → POST /api/v1/quotes
 │   └── Footer.tsx                      # Server: links, real contact info, social icons
 │
 ├── shared/
@@ -147,22 +185,32 @@ Sindhur/
 │   ├── interfaces/mongodb/
 │   │   ├── users/user.tsx              # IUser, UserRole
 │   │   ├── quotes/quoteRequest.tsx     # IQuoteRequest, QuoteStatus
-│   │   └── blog/blogPost.tsx           # IBlogPost, PostStatus
+│   │   ├── blog/blogPost.tsx           # IBlogPost, PostStatus
+│   │   ├── products/product.tsx        # IProduct, IProductSpecification, ProductStatus
+│   │   ├── rfq/rfq.tsx                 # IRFQ, RFQStatus, BusinessType
+│   │   ├── certifications/certification.tsx  # ICertification, CertificationStatus
+│   │   ├── downloads/download.tsx      # IDownload, DownloadType, DownloadStatus
+│   │   └── downloads/downloadLead.tsx  # IDownloadLead
 │   ├── lib/
 │   │   ├── db/mongo.tsx                # mongoDB() singleton (globalThis._mongoCache)
 │   │   └── utils.tsx                   # cx(), slugify(), formatDate()
 │   └── models/mongodb/
 │       ├── users/user.tsx              # Mongoose User model
 │       ├── quotes/quoteRequest.tsx     # Mongoose QuoteRequest model
-│       └── blog/blogPost.tsx           # Mongoose BlogPost model
+│       ├── blog/blogPost.tsx           # Mongoose BlogPost model
+│       ├── products/product.tsx        # Mongoose Product model (nested spec subdocument)
+│       ├── rfq/rfq.tsx                 # Mongoose RFQ model
+│       ├── certifications/certification.tsx  # Mongoose Certification model
+│       ├── downloads/download.tsx      # Mongoose Download model
+│       └── downloads/downloadLead.tsx  # Mongoose DownloadLead model
 │
 ├── lib/
-│   └── data.ts                         # All static marketing content (exported constants)
+│   └── data.ts                         # Static marketing content (NAV_LINKS now points /products)
 ├── types/
 │   └── index.ts                        # TypeScript types for marketing data shapes
 │
 ├── middleware.ts                        # Edge: jose jwtVerify → protects /admin/:path*
-├── next.config.ts                       # serverExternalPackages, image remotePatterns
+├── next.config.ts                       # serverExternalPackages: ["mongoose"], image remotePatterns
 ├── tsconfig.json                        # strict, @/* alias → project root
 ├── postcss.config.mjs                   # @tailwindcss/postcss plugin
 └── .env.local                           # Secrets — never commit
@@ -177,6 +225,11 @@ Sindhur/
 | Path | Type | Description |
 |---|---|---|
 | `/` | Static (SSG) | Homepage — all marketing sections |
+| `/products` | Server + Client | Product catalog with interactive search/filter |
+| `/products/[slug]` | Dynamic (SSR) | Full product page: gallery, specs, CTA, WhatsApp pre-fill |
+| `/request-quote` | Client (Suspense) | Advanced RFQ form; pre-fills from `?product=` param |
+| `/trust` | Server (SSR) | Certifications, QA process, stats — pulls live DB data |
+| `/downloads` | Client | Download center with gated lead capture modal |
 | `/blog` | Dynamic (SSR) | Published blog post grid |
 | `/blog/[slug]` | Dynamic (SSR) | Individual post with full SEO metadata |
 | `/login` | Static | Admin login form |
@@ -186,8 +239,15 @@ Sindhur/
 
 | Path | Description |
 |---|---|
-| `/admin` | Dashboard — stats cards + 5 most recent inquiries |
-| `/admin/quotes` | Quote request list, status management, admin notes |
+| `/admin` | Dashboard — 8 stat cards (RFQ, leads, quotes, blog) + quick actions |
+| `/admin/products` | Product list — filter by status, publish toggle, edit/delete |
+| `/admin/products/new` | Create product — 8 form sections, dynamic spec rows |
+| `/admin/products/[id]/edit` | Edit product — URL uses MongoDB `_id`, patches by slug |
+| `/admin/rfq` | RFQ pipeline — 8 status tabs, search, expandable accordions, email/WA links |
+| `/admin/certifications` | Certifications — list + slide-in add/edit panel |
+| `/admin/downloads` | Downloads — list + slide-in add/edit, publish toggle |
+| `/admin/download-leads` | Download leads — view-only table with pagination |
+| `/admin/quotes` | Legacy quote request list, status management, admin notes |
 | `/admin/blog` | Blog post list — publish/unpublish, delete |
 | `/admin/blog/new` | Create new article |
 | `/admin/blog/[id]/edit` | Edit existing article (routed by MongoDB `_id`) |
@@ -198,106 +258,191 @@ Sindhur/
 |---|---|---|---|
 | `POST` | `/api/v1/auth/login` | — | Login; sets `token` httpOnly cookie |
 | `POST` | `/api/v1/auth/register` | — | Create admin account |
-| `POST` | `/api/v1/auth/logout` | — | Clears `token` cookie (`maxAge: 0`) |
-| `GET` | `/api/v1/auth/me` | JWT cookie | Return current user (no `passwordHash`) |
-| `POST` | `/api/v1/quotes` | — | Submit quote request from public form |
-| `GET` | `/api/v1/quotes` | JWT cookie | List quote requests, paginated |
-| `PATCH` | `/api/v1/quotes/[id]` | JWT cookie | Update `status` and/or `adminNotes` |
-| `DELETE` | `/api/v1/quotes/[id]` | JWT cookie | Delete a quote request |
-| `GET` | `/api/v1/blog` | — / JWT | List posts; `?admin=true` requires JWT, returns all statuses |
-| `POST` | `/api/v1/blog` | JWT cookie | Create blog post |
+| `POST` | `/api/v1/auth/logout` | — | Clears `token` cookie |
+| `GET` | `/api/v1/auth/me` | JWT | Return current user (no `passwordHash`) |
+| `GET` | `/api/v1/products` | — / JWT | List products; `?admin=true` returns all statuses |
+| `POST` | `/api/v1/products` | JWT | Create product; auto-generates slug |
+| `GET` | `/api/v1/products/[slug]` | — / JWT | Single product; `?admin=true` skips published filter |
+| `PATCH` | `/api/v1/products/[slug]` | JWT | Update any product field |
+| `DELETE` | `/api/v1/products/[slug]` | JWT | Delete product by slug |
+| `POST` | `/api/v1/rfq` | — | Submit RFQ from public form |
+| `GET` | `/api/v1/rfq` | JWT | List RFQs with status/country/product/search filters |
+| `PATCH` | `/api/v1/rfq/[id]` | JWT | Update `status` and/or `adminNotes` only |
+| `DELETE` | `/api/v1/rfq/[id]` | JWT | Delete RFQ |
+| `GET` | `/api/v1/certifications` | — / JWT | List certs; `?admin=true` returns all statuses |
+| `POST` | `/api/v1/certifications` | JWT | Create certification |
+| `PATCH` | `/api/v1/certifications/[id]` | JWT | Update certification |
+| `DELETE` | `/api/v1/certifications/[id]` | JWT | Delete certification |
+| `GET` | `/api/v1/downloads` | — / JWT | List downloads; `?admin=true` returns all statuses |
+| `POST` | `/api/v1/downloads` | JWT | Create download resource |
+| `PATCH` | `/api/v1/downloads/[id]` | JWT | Update download resource |
+| `DELETE` | `/api/v1/downloads/[id]` | JWT | Delete download resource |
+| `POST` | `/api/v1/download-leads` | — | Capture lead; returns `{ lead, fileUrl }` for frontend to trigger download |
+| `GET` | `/api/v1/download-leads` | JWT | List all download leads, paginated |
+| `DELETE` | `/api/v1/download-leads/[id]` | JWT | Delete a lead record |
+| `POST` | `/api/v1/quotes` | — | Submit legacy quote request |
+| `GET` | `/api/v1/quotes` | JWT | List quote requests, paginated |
+| `PATCH` | `/api/v1/quotes/[id]` | JWT | Update `status` and/or `adminNotes` |
+| `DELETE` | `/api/v1/quotes/[id]` | JWT | Delete a quote request |
+| `GET` | `/api/v1/blog` | — / JWT | List posts; `?admin=true` returns all statuses |
+| `POST` | `/api/v1/blog` | JWT | Create blog post |
 | `GET` | `/api/v1/blog/[slug]` | — / JWT | Single post; `?admin=true` skips published filter |
-| `PATCH` | `/api/v1/blog/[slug]` | JWT cookie | Update post fields |
-| `DELETE` | `/api/v1/blog/[slug]` | JWT cookie | Delete post by slug |
-| `GET` | `/api/v1/admin/stats` | JWT cookie | Aggregated counts + 5 most recent quotes |
+| `PATCH` | `/api/v1/blog/[slug]` | JWT | Update post fields |
+| `DELETE` | `/api/v1/blog/[slug]` | JWT | Delete post by slug |
+| `GET` | `/api/v1/admin/stats` | JWT | All platform counts + 5 recent legacy quotes |
 
 ---
 
 ## Data Models & Interfaces
 
-### `IUser` — `shared/interfaces/mongodb/users/user.tsx`
+### `IProduct` — `shared/interfaces/mongodb/products/product.tsx`
 
 ```ts
-export type UserRole = "Admin";
+export type ProductStatus = "draft" | "published";
+export interface IProductSpecification { label: string; value: string; }
 
-export interface IUser {
+export interface IProduct {
   _id?: string;
   name: string;
-  email: string;
-  passwordHash: string;
-  role: UserRole;
+  slug: string;                   // auto-generated via slugify(name)
+  category: string;
+  shortDescription: string;
+  fullDescription: string;        // raw HTML
+  images: string[];               // CDN/Unsplash URLs
+  scientificName?: string;
+  hsCode?: string;
+  origin?: string;
+  availableGrades: string[];
+  specifications: IProductSpecification[];   // nested subdocument array
+  moq?: string;
+  packagingOptions: string[];
+  containerCapacity?: string;
+  shelfLife?: string;
+  certifications: string[];
+  leadTime?: string;
+  incotermsSupported: string[];   // e.g. ["FOB", "CIF"]
+  paymentTerms: string[];         // e.g. ["LC", "TT"]
+  exportMarkets: string[];
+  privateLabelAvailable: boolean;
+  sampleAvailable: boolean;
+  status: ProductStatus;
   createdAt?: Date;
   updatedAt?: Date;
 }
 ```
 
-**Mongoose schema** (`shared/models/mongodb/users/user.tsx`):
-- `email`: unique index, lowercase, trimmed
-- `role`: enum `["Admin"]`, default `"Admin"`
-- `timestamps: true`
+**Mongoose schema notes:**
+- Specifications use `new Schema({ label: String, value: String }, { _id: false })` (no TypeScript generic)
+- Indexes: `{ status: 1, createdAt: -1 }`, `{ category: 1, status: 1 }`
 
 ---
 
-### `IQuoteRequest` — `shared/interfaces/mongodb/quotes/quoteRequest.tsx`
+### `IRFQ` — `shared/interfaces/mongodb/rfq/rfq.tsx`
 
 ```ts
-export type QuoteStatus = "pending" | "reviewing" | "responded" | "closed";
+export type RFQStatus = "new" | "contacted" | "negotiation" | "sample_sent" | "quotation_sent" | "won" | "lost";
+export type BusinessType = "Importer" | "Distributor" | "Retailer" | "Wholesaler" | "Manufacturer" | "Other";
 
-export interface IQuoteRequest {
+export interface IRFQ {
   _id?: string;
-  name: string;
-  company?: string;
+  buyerName: string;
+  companyName: string;
   email: string;
-  country?: string;
-  product?: string;
+  phone?: string;
+  country: string;
+  businessType: BusinessType;
+  productInterested: string;
+  quantityRequired?: string;
+  targetPrice?: string;
+  destinationPort?: string;
+  preferredIncoterm?: string;
+  packagingRequirements?: string;
+  customRequirements?: string;
   message?: string;
-  status: QuoteStatus;        // default: "pending"
+  uploadedDocumentUrl?: string;
+  status: RFQStatus;              // default: "new"
   adminNotes?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
 ```
 
-**Mongoose schema** indexes: `status` (single), `{ createdAt: -1 }`, `{ status: 1, createdAt: -1 }`
+**Indexes:** `{ createdAt: -1 }`, `{ status: 1, createdAt: -1 }`, `{ country: 1 }`
 
 ---
 
-### `IBlogPost` — `shared/interfaces/mongodb/blog/blogPost.tsx`
+### `ICertification` — `shared/interfaces/mongodb/certifications/certification.tsx`
 
 ```ts
-export type PostStatus = "draft" | "published";
+export type CertificationStatus = "active" | "expired" | "hidden";
 
-export interface IBlogPost {
+export interface ICertification {
   _id?: string;
-  title: string;
-  slug: string;           // unique, URL-safe, lowercase
-  excerpt: string;        // used as meta description (aim for ≤160 chars)
-  content: string;        // raw HTML — rendered via dangerouslySetInnerHTML
-  coverImage?: string;    // URL (Unsplash or other CDN)
-  tags: string[];
-  status: PostStatus;     // default: "draft"
-  authorId?: string;      // JWT sub from creating admin
-  publishedAt?: Date;     // set automatically when status becomes "published"
+  name: string;
+  issuingAuthority: string;
+  certificateNumber?: string;
+  validFrom?: Date;
+  validTo?: Date;
+  imageUrl?: string;
+  documentUrl?: string;
+  description?: string;
+  status: CertificationStatus;
   createdAt?: Date;
   updatedAt?: Date;
 }
 ```
 
-**Mongoose schema** indexes: `slug` (unique), `status` (single), `{ status: 1, publishedAt: -1 }`
+---
+
+### `IDownload` — `shared/interfaces/mongodb/downloads/download.tsx`
+
+```ts
+export type DownloadType = "Company Profile" | "Product Catalog" | "Certification" | "Brochure" | "Other";
+export type DownloadStatus = "draft" | "published";
+
+export interface IDownload {
+  _id?: string;
+  title: string;
+  description: string;
+  fileUrl: string;
+  type: DownloadType;
+  requiresLeadCapture: boolean;  // if true, show lead form before download
+  status: DownloadStatus;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+```
 
 ---
 
-### Marketing types — `types/index.ts`
+### `IDownloadLead` — `shared/interfaces/mongodb/downloads/downloadLead.tsx`
 
-`Product`, `Testimonial`, `ProcessStep`, `WhyChooseItem`, `Country`, `NavLink` — used only in `lib/data.ts` and the static marketing components. Not stored in MongoDB.
+```ts
+export interface IDownloadLead {
+  _id?: string;
+  name: string;
+  email: string;
+  company?: string;
+  country?: string;
+  phone?: string;
+  downloadId: string;      // references Download._id
+  downloadTitle: string;   // denormalised for display
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+```
+
+---
+
+### `IUser`, `IQuoteRequest`, `IBlogPost`
+
+See [Authentication](#authentication) and [Blog System](#blog-system) sections. These existed before Phase 1.
 
 ---
 
 ## API Reference
 
 ### Standard response envelope
-
-Every API response uses the same shape:
 
 ```jsonc
 // Success
@@ -310,32 +455,37 @@ Every API response uses the same shape:
 ### Paginated list shape (inside `data`)
 
 ```jsonc
-{
-  "items": [],
-  "meta": { "total": 42, "page": 1, "limit": 20, "totalPages": 3 }
-}
+{ "items": [], "meta": { "total": 42, "page": 1, "limit": 20, "totalPages": 3 } }
 ```
 
 ### Query parameters
 
-**Quotes list** `GET /api/v1/quotes`
-- `?status=pending|reviewing|responded|closed` — filter by status
+**Products list** `GET /api/v1/products`
+- `?admin=true` — bypass published filter (requires JWT)
+- `?category=Spices` — filter by category
+- `?search=turmeric` — search name + shortDescription
 - `?page=1&limit=20` — pagination
+- Note: `fullDescription` and `specifications` are excluded from list responses
 
-**Blog list** `GET /api/v1/blog`
-- `?admin=true` — bypass published filter (requires JWT cookie)
-- `?tag=spices` — filter by tag
-- `?page=1&limit=12` — pagination
-- Note: `content` field is excluded from list responses (`-content` projection) in both public and admin modes
+**RFQ list** `GET /api/v1/rfq`
+- `?status=new|contacted|negotiation|sample_sent|quotation_sent|won|lost`
+- `?country=UAE`
+- `?product=coconut` — regex match on `productInterested`
+- `?search=` — matches `buyerName`, `companyName`, `email`
+- `?page=1&limit=20`
 
-**Blog single post** `GET /api/v1/blog/[slug]`
-- `?admin=true` — allows fetching draft posts (requires JWT cookie)
+**Certifications** `GET /api/v1/certifications`
+- `?admin=true` — returns all statuses (requires JWT); else only `{ status: "active" }`
 
-### Blog creation — slug rules
+**Downloads** `GET /api/v1/downloads`
+- `?admin=true` — returns all statuses (requires JWT); else only `{ status: "published" }`
 
-1. `slug` is auto-generated via `slugify(title)` if not provided
-2. If the generated slug already exists in the DB, `Date.now()` is appended: `my-slug-1234567890`
-3. `publishedAt` is set to `new Date()` automatically when `status === "published"` at creation or update
+**Download lead capture** `POST /api/v1/download-leads`
+- Body: `{ name, email, company?, country?, phone?, downloadId }`
+- Response `data`: `{ lead: IDownloadLead, fileUrl: string }` — frontend uses `fileUrl` to trigger `window.open(fileUrl, '_blank')` after form submit
+
+**Admin stats** `GET /api/v1/admin/stats`
+- Returns: `{ quotes: {total, pending, reviewing}, blog: {total, published, drafts}, rfq: {total, new, won}, downloadLeads: {total}, recentQuotes: [...5] }`
 
 ---
 
@@ -343,68 +493,16 @@ Every API response uses the same shape:
 
 ### Tailwind v4 setup
 
-`app/globals.css` uses `@import "tailwindcss"` (v4 syntax — not `@tailwind base/components/utilities`). Custom tokens live in two blocks:
-
-```css
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);       /* DM Sans, set by next/font on <html> */
-  --font-display: var(--font-display); /* Playfair Display, set by next/font on <html> */
-}
-
-@theme {
-  /* -- Brand -- */
-  --color-primary: #f97316;
-  --color-primary-hover: #ea580c;
-  --color-primary-foreground: #ffffff;
-  --color-primary-subtle: #fff7ed;
-
-  /* -- Surfaces -- */
-  --color-surface: #f9fafb;
-  --color-surface-card: #ffffff;
-  --color-dark: #030712;
-
-  /* -- Text -- */
-  --color-foreground-heading: #111827;
-  --color-foreground-body: #4b5563;
-  --color-foreground-muted: #9ca3af;
-
-  /* -- Borders -- */
-  --color-border: #f3f4f6;
-  --color-border-input: #e5e7eb;
-  --color-border-focus: #fb923c;
-
-  /* -- Status -- */
-  --color-status-warning: #b45309;        --color-status-warning-surface: #fffbeb;
-  --color-status-info: #1d4ed8;           --color-status-info-surface: #eff6ff;
-  --color-status-success: #15803d;        --color-status-success-surface: #f0fdf4;
-  --color-status-danger: #b91c1c;         --color-status-danger-surface: #fef2f2;
-}
-```
+`app/globals.css` uses `@import "tailwindcss"` (v4 syntax). Custom tokens live in `@theme {}`.
 
 ### Fonts
 
-Configured in `app/layout.tsx` with `next/font/google`:
-
 ```ts
-const dmSans    = DM_Sans({ subsets: ["latin"], variable: "--font-sans", weight: ["300","400","500","600","700","800","900"] });
-const playfair  = Playfair_Display({ subsets: ["latin"], variable: "--font-display", weight: ["700","800","900"] });
-// Applied as className on <html>
+const dmSans   = DM_Sans({ subsets: ["latin"], variable: "--font-sans", weight: ["300","400","500","600","700","800","900"] });
+const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-display", weight: ["700","800","900"] });
 ```
 
-### Status badge pattern (admin UI)
-
-```ts
-const STATUS_COLORS: Record<string, string> = {
-  pending:   "bg-yellow-50 text-yellow-700 border border-yellow-200",
-  reviewing: "bg-blue-50 text-blue-700 border border-blue-200",
-  responded: "bg-green-50 text-green-700 border border-green-200",
-  closed:    "bg-gray-100 text-gray-600 border border-gray-200",
-};
-```
-
-### Reusable form input class (admin / auth pages)
+### Reusable admin input class
 
 ```ts
 const inputCls =
@@ -414,8 +512,6 @@ const inputCls =
 ```
 
 ### Marketing section background alternation
-
-Sections alternate to create visual rhythm without dividers:
 
 | Section | Background |
 |---|---|
@@ -441,149 +537,129 @@ Sections alternate to create visual rhythm without dividers:
 
 ### Route protection (two layers)
 
-1. **Edge middleware** (`middleware.ts`): `jose`'s `jwtVerify` runs on every `/admin/*` request before any page renders. Invalid or missing token → redirect to `/login?from=<original-path>`.
-2. **Client guard** (`admin/layout.tsx`): `useUser()` in a `useEffect` — if `!loading && !user`, redirect to `/login`. This is a fallback for CSR transitions.
+1. **Edge middleware** (`middleware.ts`): `jose`'s `jwtVerify` runs on every `/admin/*` request. Invalid or missing token → redirect to `/login?from=<original-path>`.
+2. **Client guard** (`admin/layout.tsx`): `useUser()` in `useEffect` — if `!loading && !user`, redirect to `/login`.
 
-### Sidebar navigation
+### Sidebar navigation (8 items)
 
-Desktop: fixed `w-60` white sidebar. Mobile: slide-in overlay triggered by hamburger.
+| Icon | Label | Route |
+|---|---|---|
+| `LayoutDashboard` | Dashboard | `/admin` |
+| `Package` | Products | `/admin/products` |
+| `ClipboardList` | RFQ Pipeline | `/admin/rfq` |
+| `Award` | Certifications | `/admin/certifications` |
+| `Download` | Downloads | `/admin/downloads` |
+| `UserCheck` | Download Leads | `/admin/download-leads` |
+| `MessageSquare` | Quote Requests | `/admin/quotes` |
+| `FileText` | Blog Posts | `/admin/blog` |
 
-Nav items (lucide-react icons):
-- **Dashboard** (`LayoutDashboard`) → `/admin`
-- **Quote Requests** (`MessageSquare`) → `/admin/quotes`
-- **Blog Posts** (`FileText`) → `/admin/blog`
-- **View Website** (`Globe`) → `/` (opens in new tab)
-- User avatar + name + email + logout button (`LogOut`)
+Plus **View Website** (`Globe`) and user avatar + logout at the bottom.
 
-### Dashboard stats
+### Dashboard stats (8 cards)
 
-Fetches `GET /api/v1/admin/stats` which returns in a single round-trip:
-- `quotes.total`, `quotes.pending`, `quotes.reviewing`
-- `blog.total`, `blog.published`, `blog.drafts`
-- `recentQuotes` — last 5 quote requests (full documents)
+Fetches `GET /api/v1/admin/stats` in one round trip:
+- Total RFQs, New RFQs, Deals Won, Download Leads, Quote Requests, Pending Replies, Published Posts, Draft Posts
 
-### Quote request management
+Each card links to its respective admin route.
 
-- Filter tabs: All / Pending / Reviewing / Responded / Closed
-- Each row is expandable (accordion): shows full details, email link, country, product, message
-- Inline status `<select>` — change triggers immediate `PATCH`
-- Admin notes text input — saved with a "Save" button
-- Delete button with `window.confirm()`
+### RFQ Pipeline (`/admin/rfq`)
 
-### Blog post management
+- 8 status tabs with live count badges: All / New / Contacted / Negotiation / Sample Sent / Quotation Sent / Won / Lost
+- Search bar (Enter to submit) — matches `buyerName`, `companyName`, `email`
+- Expandable accordion rows: buyer details grid, message, inline status dropdown + admin notes textarea, "Save Changes" button
+- Action buttons: Email (opens `mailto:` prefilled), WhatsApp (links to `wa.me/` prefilled), Delete
 
-- Filter tabs: all / published / draft
-- Each row shows cover image thumbnail (or placeholder icon), title, date, tags (first 2), status badge
-- **Publish / Unpublish** toggle — one-click `PATCH` to flip status
-- **Edit** button → `/admin/blog/[_id]/edit`
-- **View live** icon (Globe) — only shown when published, opens `/blog/[slug]` in new tab
-- **Delete** button with `window.confirm()`
+### Product Management (`/admin/products`)
+
+- Filter tabs: All / Published / Draft
+- Each row: 56px thumbnail, name, category, status badge, Globe/Eye/EyeOff/PenLine/Trash2 buttons
+- Publish toggle: one-click PATCH to `/api/v1/products/${slug}` with `{ status }`, view live: opens `/products/${slug}`
+- Edit: links to `/admin/products/${product._id}/edit`
+
+### Product Form (new + edit)
+
+8 sections:
+1. **Basic Info** — name, category, status, short description, sample + private label checkboxes
+2. **Product Details** — scientific name, HS code, origin, shelf life, lead time, MOQ
+3. **Full Description** — HTML textarea
+4. **Images** — one URL per line, split on `\n`
+5. **Grades & Certifications** — comma-separated text inputs
+6. **Technical Specifications** — dynamic `{label, value}[]` rows (Add Row / remove buttons)
+7. **Packaging & Logistics** — packaging options (comma-separated), container capacity
+8. **Export Information** — Incoterms toggle buttons, payment terms toggle buttons, export markets (comma-separated)
+
+Name auto-generates slug via `slugify(name)` unless the slug field was manually edited (`slugEdited` flag).
 
 ---
 
 ## Blog System
 
-### Writing content
+Content is stored as raw **HTML**. Editor accepts standard HTML tags. A Preview toggle renders via `dangerouslySetInnerHTML` with Tailwind `prose` classes.
 
-Content is stored and rendered as **HTML**. The editor textarea accepts standard HTML:
+Slug generation: `slugify(title)`. Collision handling: appends `-${Date.now()}`.
 
-```html
-<h2>Section Title</h2>
-<p>Paragraph with <strong>bold</strong>, <em>italics</em> and <a href="#">links</a>.</p>
-<ul><li>List item</li></ul>
-<blockquote>A notable quote.</blockquote>
-```
-
-A **Preview** toggle renders the content via `dangerouslySetInnerHTML` with Tailwind's `prose` typography classes applied.
-
-### Slug generation
-
-`slugify(text)` in `shared/lib/utils.tsx`:
-```ts
-text.toLowerCase().trim()
-  .replace(/[^\w\s-]/g, "")
-  .replace(/[\s_-]+/g, "-")
-  .replace(/^-+|-+$/g, "")
-```
-
-Auto-fills from the title as you type on the new post form. Can be manually overridden.
-
-### SEO per post (`/blog/[slug]`)
-
-`generateMetadata()` is a Next.js Server Function that runs at request time:
-
-```ts
-{
-  title: `${post.title} — Sindhur Exports Blog`,
-  description: post.excerpt,
-  keywords: post.tags,
-  openGraph: {
-    title: post.title,
-    description: post.excerpt,
-    type: "article",
-    publishedTime: post.publishedAt,
-    images: post.coverImage ? [{ url: post.coverImage }] : [],
-  }
-}
-```
+`publishedAt` is set automatically by the server when `status === "published"` — never set from the client.
 
 ---
 
 ## Authentication
 
-### Flow
-
 ```
-1. POST /api/v1/auth/login
-   → bcrypt.compare(password, user.passwordHash)
-   → jwt.sign({ sub: user._id, email, role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN })
-   → Set-Cookie: token=<jwt>; HttpOnly; SameSite=Lax; Path=/; Max-Age=JWT_COOKIE_MAX_AGE
+POST /api/v1/auth/login
+  → bcrypt.compare(password, user.passwordHash)
+  → jwt.sign({ sub, email, role }, JWT_SECRET, { expiresIn })
+  → Set-Cookie: token=<jwt>; HttpOnly; SameSite=Lax; Path=/
 
-2. Subsequent admin requests
-   → middleware.ts reads cookie "token"
-   → jose.jwtVerify(token, secret)   ← Edge Runtime compatible
-   → API routes: verifyToken(req) uses jsonwebtoken.verify()  ← Node.js runtime
+Every /admin/* request
+  → middleware.ts (Edge Runtime): jose.jwtVerify
 
-3. POST /api/v1/auth/logout
-   → Set-Cookie: token=; Max-Age=0 (clears cookie)
+Every admin API call
+  → verifyToken(req): jsonwebtoken.verify
+  → returns NextResponse (401) if invalid, or JWT payload if valid
+  → callers check: if (auth instanceof NextResponse) return auth
 ```
 
-### UserContext (`shared/context/UserContext.tsx`)
-
-- Exports: `ILoggedinUser`, `UserProvider`, `useUser()`
-- `ILoggedinUser`: `{ id, name?, email, role? }`
-- localStorage key: `"se_user"` (JSON-serialised `ILoggedinUser`)
-- On mount: if no user in state, calls `GET /api/v1/auth/me` to rehydrate from cookie
-- `login(u)`: sets state + localStorage
-- `logout()`: clears state + localStorage + calls `POST /api/v1/auth/logout`
-
-### Two JWT libraries — why both
+### Two JWT libraries
 
 | Context | Library | Reason |
 |---|---|---|
-| `middleware.ts` | `jose` | Runs on Edge Runtime (V8 isolate) — no Node.js crypto module |
-| API route handlers | `jsonwebtoken` | Runs in Node.js runtime — has access to native crypto |
+| `middleware.ts` | `jose` | Edge Runtime (V8 isolate) — no Node.js crypto |
+| API route handlers | `jsonwebtoken` | Node.js runtime — native crypto available |
+
+---
+
+## WhatsApp Integration
+
+A floating sticky button component (`components/WhatsAppButton.tsx`) is added to `app/layout.tsx` and renders on every page. It reads `usePathname()` and hides itself on `/admin/*`, `/login`, `/register`, `/buyer` routes.
+
+- WA number: `917330810209`
+- Default message: `"Hi Sindhur Exports, I'm interested in importing from India..."`
+- Positioned: `fixed bottom-6 right-6 z-50`
+- Color: `#25D366` (WhatsApp brand green)
+
+Product detail pages pre-fill the WA message with the specific product name:
+```
+"Hi Sindhur Exports, I'm interested in importing ${product.name} from India. Please send me a quote."
+```
 
 ---
 
 ## Environment Variables
-
-All configured in `.env.local`:
 
 | Variable | Purpose |
 |---|---|
 | `MONGODB_URI` | MongoDB Atlas URI; database name: `syndhur-exports` |
 | `JWT_SECRET` | HMAC secret for signing/verifying JWTs |
 | `JWT_EXPIRES_IN` | Token lifetime (e.g. `7d`) |
-| `JWT_COOKIE_MAX_AGE` | Cookie `maxAge` in seconds (e.g. `604800` = 7 days) |
+| `JWT_COOKIE_MAX_AGE` | Cookie `maxAge` in seconds (e.g. `604800`) |
 | `BCRYPT_SALT_ROUNDS` | Bcrypt work factor (e.g. `12`) |
-| `NEXT_PUBLIC_APP_URL` | Add this with your deployed URL for server-side blog fetches in production |
-| `BREVO_*` | Email credentials (Brevo SMTP) — wired up when email notifications are added |
-| `NEXT_PUBLIC_SUPABASE_*` | Supabase project — wired up when image upload is added |
-| `OPENAI_API_KEY` | Available for future AI features |
-| `REDIS_URL` / `UPSTASH_*` | Redis credentials — available for future rate limiting or caching |
+| `NEXT_PUBLIC_APP_URL` | Production URL for server-side API fetches (Server Components) |
+| `BREVO_*` | Email SMTP — not yet wired |
+| `NEXT_PUBLIC_SUPABASE_*` | Supabase — not yet wired (reserved for file/image uploads) |
+| `OPENAI_API_KEY` | Not yet wired (reserved for future AI features) |
+| `REDIS_URL` / `UPSTASH_*` | Not yet wired (reserved for rate limiting) |
 
-> Before going live, update `EMAIL_FROM` in `.env.local` from `FR3SH <hello@farmers-republic.com>` to `Sindhur Exports <varma.v.business@gmail.com>`.
+> **Before going live:** Update `EMAIL_FROM` from the template default to `Sindhur Exports <varma.v.business@gmail.com>`. Set `NEXT_PUBLIC_APP_URL` to your production domain.
 
 ---
 
@@ -595,9 +671,7 @@ All configured in `.env.local`:
 vercel
 ```
 
-Or push to GitHub and connect the repo to [vercel.com](https://vercel.com) for automatic CI/CD.
-
-Copy all `.env.local` variables into Vercel's **Environment Variables** settings before deploying. Set `NEXT_PUBLIC_APP_URL` to your production domain so server-side blog fetches work correctly.
+Or push to GitHub and connect the repo to Vercel for automatic CI/CD. Copy all `.env.local` variables to Vercel's **Environment Variables** settings before deploying.
 
 ---
 
@@ -612,6 +686,7 @@ Copy all `.env.local` variables into Vercel's **Environment Variables** settings
 | Phone / WhatsApp | +91 73308 10209 |
 | Business Hours | Mon–Fri 9AM–6:30PM IST · Sat 9AM–1PM IST |
 | Certifications | ISO 9001:2015, APEDA, FSSAI, FIEO, DGFT |
+| Key stats | 50+ countries, 15+ years, 2000+ shipments, 98% on-time delivery |
 
 ### Products exported (6 categories)
 

@@ -41,7 +41,7 @@ export default function HeroSection() {
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 via-orange-400 to-transparent" />
 
       {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 pb-20 pt-36 w-full">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 pb-10 pt-24 md:pb-20 md:pt-36 w-full">
         <div className="max-w-3xl">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-orange-500/15 border border-orange-500/30 rounded-full px-4 py-1.5 mb-8">
@@ -88,7 +88,7 @@ export default function HeroSection() {
         </div>
 
         {/* Stats row */}
-        <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-px bg-white/10 rounded-2xl overflow-hidden border border-white/10">
+        <div className="mt-10 md:mt-20 grid grid-cols-2 md:grid-cols-4 gap-px bg-white/10 rounded-2xl overflow-hidden border border-white/10">
           {STATS.map(({ value, label }) => (
             <div
               key={label}

@@ -43,10 +43,10 @@ function ProductCard({ product }: { product: Product }) {
 
 export default function ProductsSection() {
   return (
-    <section id="products" className="py-28 bg-gray-50">
+    <section id="products" className="py-16 md:py-28 bg-gray-50">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
+        <div className="text-center max-w-2xl mx-auto mb-10 md:mb-16">
           <span className="text-orange-500 text-[12px] font-bold tracking-[0.2em] uppercase">Our Products</span>
           <h2 className="mt-3 text-4xl md:text-5xl font-black text-gray-900 leading-tight tracking-tight">
             What We Export
@@ -64,7 +64,7 @@ export default function ProductsSection() {
         </div>
 
         {/* CTA */}
-        <div className="mt-14 text-center">
+        <div className="mt-10 md:mt-14 text-center">
           <p className="text-gray-500 text-[15px] mb-4">
             Don't see your product category? We export much more.
           </p>

@@ -2,9 +2,9 @@ import { WHY_CHOOSE } from "@/lib/data";
 
 export default function WhyChooseSection() {
   return (
-    <section className="py-28 bg-white">
+    <section className="py-16 md:py-28 bg-white">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="grid lg:grid-cols-2 gap-16 items-start">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-start">
           {/* Left sticky */}
           <div className="lg:sticky lg:top-28">
             <span className="text-orange-500 text-[12px] font-bold tracking-[0.2em] uppercase">Why Sindhur</span>

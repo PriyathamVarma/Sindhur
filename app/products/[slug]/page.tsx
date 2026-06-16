@@ -55,7 +55,7 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
       {/* Hero */}
       <section className="bg-white py-10">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-start">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             {/* Gallery */}
             <ProductGallery images={product.images} name={product.name} />
 
@@ -208,7 +208,7 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
                 <div className="rounded-2xl overflow-hidden border border-gray-100">
                   {product.specifications.map((spec, i) => (
                     <div key={i} className={`flex ${i % 2 === 0 ? "bg-gray-50" : "bg-white"}`}>
-                      <div className="w-44 flex-shrink-0 px-5 py-3.5 text-[13px] font-semibold text-gray-600 border-r border-gray-100">
+                      <div className="w-28 sm:w-44 flex-shrink-0 px-5 py-3.5 text-[13px] font-semibold text-gray-600 border-r border-gray-100">
                         {spec.label}
                       </div>
                       <div className="flex-1 px-5 py-3.5 text-[13px] text-gray-900">
