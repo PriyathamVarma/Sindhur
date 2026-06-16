@@ -6,7 +6,7 @@ import type { IDownloadLead } from "@/shared/interfaces/mongodb/downloads/downlo
 import { formatDate } from "@/shared/lib/utils";
 import toast from "react-hot-toast";
 
-interface LeadRow extends IDownloadLead { _id: string; createdAt: string }
+interface LeadRow extends Omit<IDownloadLead, "createdAt"> { _id: string; createdAt: string }
 
 export default function AdminDownloadLeadsPage() {
   const [leads, setLeads]     = useState<LeadRow[]>([]);

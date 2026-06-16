@@ -27,7 +27,7 @@ const STATUS_STYLE: Record<string, string> = {
   lost:           "bg-red-50 text-red-700 border-red-200",
 };
 
-interface RFQRow extends IRFQ {
+interface RFQRow extends Omit<IRFQ, "createdAt"> {
   _id: string;
   createdAt: string;
 }
