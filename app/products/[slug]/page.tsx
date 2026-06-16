@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ProductGallery from "@/components/ProductGallery";
+import { mongoDB } from "@/shared/lib/db/mongo";
+import ProductModel from "@/shared/models/mongodb/products/product";
 import type { IProduct } from "@/shared/interfaces/mongodb/products/product";
 
 async function getProduct(slug: string): Promise<IProduct | null> {
   try {
-    const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const res  = await fetch(`${base}/api/v1/products/${slug}`, { cache: "no-store" });
-    const data = await res.json();
-    return data.success ? data.data : null;
+    await mongoDB();
+    const product = await ProductModel.findOne({ slug, status: "published" }).lean();
+    return product as unknown as IProduct | null;
   } catch {
     return null;
   }

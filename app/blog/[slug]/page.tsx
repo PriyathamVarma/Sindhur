@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { IBlogPost } from "@/shared/interfaces/mongodb/blog/blogPost";
 import { formatDate } from "@/shared/lib/utils";
+import { mongoDB } from "@/shared/lib/db/mongo";
+import BlogPostModel from "@/shared/models/mongodb/blog/blogPost";
 
 type Props = { params: Promise<{ slug: string }> };
 
 async function getPost(slug: string): Promise<IBlogPost | null> {
   try {
-    const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const res = await fetch(`${base}/api/v1/blog/${slug}`, { cache: "no-store" });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.success ? data.data : null;
+    await mongoDB();
+    const post = await BlogPostModel.findOne({ slug, status: "published" }).lean();
+    return post as unknown as IBlogPost | null;
   } catch {
     return null;
   }

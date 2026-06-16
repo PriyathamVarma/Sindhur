@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import type { IBlogPost } from "@/shared/interfaces/mongodb/blog/blogPost";
 import { formatDate } from "@/shared/lib/utils";
+import { mongoDB } from "@/shared/lib/db/mongo";
+import BlogPostModel from "@/shared/models/mongodb/blog/blogPost";
 
 export const metadata: Metadata = {
   title: "Blog & Export Insights — Sindhur Exports",
@@ -14,11 +16,13 @@ export const metadata: Metadata = {
 
 async function getPosts(): Promise<IBlogPost[]> {
   try {
-    const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const res = await fetch(`${base}/api/v1/blog?limit=24`, { cache: "no-store" });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.success ? data.data.items : [];
+    await mongoDB();
+    const items = await BlogPostModel.find({ status: "published" })
+      .select("-content")
+      .sort({ publishedAt: -1 })
+      .limit(24)
+      .lean();
+    return items as unknown as IBlogPost[];
   } catch {
     return [];
   }

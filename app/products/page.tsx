@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import ProductCatalog from "@/components/ProductCatalog";
+import { mongoDB } from "@/shared/lib/db/mongo";
+import ProductModel from "@/shared/models/mongodb/products/product";
 import type { IProduct } from "@/shared/interfaces/mongodb/products/product";
 
 export const metadata: Metadata = {
@@ -14,10 +16,13 @@ export const metadata: Metadata = {
 
 async function getProducts(): Promise<IProduct[]> {
   try {
-    const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const res  = await fetch(`${base}/api/v1/products?limit=100`, { cache: "no-store" });
-    const data = await res.json();
-    return data.success ? data.data.items : [];
+    await mongoDB();
+    const items = await ProductModel.find({ status: "published" })
+      .select("-fullDescription -specifications")
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+    return items as unknown as IProduct[];
   } catch {
     return [];
   }

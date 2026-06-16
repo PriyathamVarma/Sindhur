@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import type { ICertification } from "@/shared/interfaces/mongodb/certifications/certification";
+import { mongoDB } from "@/shared/lib/db/mongo";
+import CertificationModel from "@/shared/models/mongodb/certifications/certification";
 
 export const metadata: Metadata = {
   title: "Trust & Compliance — Sindhur Exports",
@@ -9,10 +11,9 @@ export const metadata: Metadata = {
 
 async function getCertifications(): Promise<ICertification[]> {
   try {
-    const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const res  = await fetch(`${base}/api/v1/certifications`, { cache: "no-store" });
-    const data = await res.json();
-    return data.success ? data.data : [];
+    await mongoDB();
+    const items = await CertificationModel.find({ status: "active" }).lean();
+    return items as unknown as ICertification[];
   } catch {
     return [];
   }
