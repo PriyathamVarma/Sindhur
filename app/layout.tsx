@@ -3,6 +3,7 @@ import { Playfair_Display, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { UserProvider } from "@/shared/context/UserContext";
 import { Toaster } from "react-hot-toast";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased bg-white text-gray-900">
         <UserProvider>
           {children}
+          <WhatsAppButton />
         </UserProvider>
         <Toaster
           position="top-right"

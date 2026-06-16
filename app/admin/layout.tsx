@@ -11,12 +11,22 @@ import {
   Menu,
   X,
   Globe,
+  Package,
+  ClipboardList,
+  Award,
+  Download,
+  UserCheck,
 } from "lucide-react";
 
 const NAV = [
-  { href: "/admin",        label: "Dashboard",      icon: LayoutDashboard },
-  { href: "/admin/quotes", label: "Quote Requests",  icon: MessageSquare },
-  { href: "/admin/blog",   label: "Blog Posts",      icon: FileText },
+  { href: "/admin",                  label: "Dashboard",       icon: LayoutDashboard },
+  { href: "/admin/products",         label: "Products",        icon: Package },
+  { href: "/admin/rfq",              label: "RFQ Pipeline",    icon: ClipboardList },
+  { href: "/admin/certifications",   label: "Certifications",  icon: Award },
+  { href: "/admin/downloads",        label: "Downloads",       icon: Download },
+  { href: "/admin/download-leads",   label: "Download Leads",  icon: UserCheck },
+  { href: "/admin/quotes",           label: "Quote Requests",  icon: MessageSquare },
+  { href: "/admin/blog",             label: "Blog Posts",      icon: FileText },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

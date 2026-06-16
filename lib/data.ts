@@ -2,7 +2,7 @@ import type { Product, Testimonial, ProcessStep, WhyChooseItem, Country, NavLink
 
 export const NAV_LINKS: NavLink[] = [
   { label: "About",       href: "#about" },
-  { label: "Products",    href: "#products" },
+  { label: "Products",    href: "/products" },
   { label: "Global Reach",href: "#global" },
   { label: "Process",     href: "#process" },
   { label: "Blog",        href: "/blog" },
