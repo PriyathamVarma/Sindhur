@@ -28,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const updated = await QuoteRequestModel.findByIdAndUpdate(
       id,
       { $set: update },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     ).lean();
 
     if (!updated) return NextResponse.json(failure("Quote request not found"), { status: 404 });

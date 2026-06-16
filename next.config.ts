@@ -1,5 +1,13 @@
 import type { NextConfig } from "next";
 
+function getSupabaseHostname() {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || "").hostname;
+  } catch {
+    return "oresprkgtglnhbiyqlzs.supabase.co";
+  }
+}
+
 const nextConfig: NextConfig = {
   serverExternalPackages: ["mongoose"],
   images: {
@@ -7,7 +15,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
       {
         protocol: "https",
-        hostname: "xzcehmgbzoscskqhqvlm.supabase.co",
+        hostname: getSupabaseHostname(),
         pathname: "/storage/v1/object/public/**",
       },
     ],

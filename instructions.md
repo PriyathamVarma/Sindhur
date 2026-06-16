@@ -25,6 +25,7 @@ A floating WhatsApp button appears on all public pages.
 | Language | TypeScript 5 strict | |
 | Styling | Tailwind CSS v4 | PostCSS plugin (`@tailwindcss/postcss`), `@import "tailwindcss"` |
 | Database | MongoDB Atlas | Mongoose 9, db name: `syndhur-exports` |
+| File storage | Supabase Storage | `@supabase/supabase-js` + `@supabase/ssr`; bucket: `products` |
 | Auth | JWT in httpOnly cookies | bcryptjs + jsonwebtoken (API) + jose (middleware/Edge) |
 | Middleware | Next.js Edge Middleware | `jose` `jwtVerify` (Edge Runtime compatible) |
 | Fonts | Google Fonts via next/font | DM Sans (body, `--font-sans`), Playfair Display (headings, `--font-display`) |
@@ -32,7 +33,7 @@ A floating WhatsApp button appears on all public pages.
 | Toasts | react-hot-toast | `<Toaster position="top-right" />` in root layout |
 | Slug util | Custom `slugify()` in `shared/lib/utils.tsx` | |
 
-**Key `next.config.ts` setting:** `serverExternalPackages: ["mongoose"]` — prevents Next.js from bundling Mongoose (it uses native Node.js modules).
+**Key `next.config.ts` setting:** `serverExternalPackages: ["mongoose"]` — prevents Next.js from bundling Mongoose. Also adds Supabase storage domain dynamically to `images.remotePatterns` via `getSupabaseHostname()`.
 
 ---
 
@@ -51,17 +52,17 @@ Sindhur/
 │   │   ├── page.tsx                          # Client: 8 stat cards, 4 quick actions, recent quotes list
 │   │   ├── products/
 │   │   │   ├── page.tsx                      # Client: product list, filter tabs, publish/unpublish, edit/delete
-│   │   │   ├── new/page.tsx                  # Client: 8-section creation form, dynamic spec rows, sticky save bar
-│   │   │   └── [id]/edit/page.tsx            # Client: edit form; URL param = MongoDB _id; two fetches to get full data
+│   │   │   ├── new/page.tsx                  # Client: 8-section creation form, MultiImageUpload, dynamic spec rows, sticky save bar
+│   │   │   └── [id]/edit/page.tsx            # Client: edit form; URL param = MongoDB _id; fetches product by id or slug
 │   │   ├── rfq/page.tsx                      # Client: 8 status tabs, search bar, accordion rows, inline save
-│   │   ├── certifications/page.tsx           # Client: list + fixed right slide-in panel for add/edit
-│   │   ├── downloads/page.tsx                # Client: list + fixed right slide-in panel for add/edit, publish toggle
+│   │   ├── certifications/page.tsx           # Client: list + fixed right slide-in panel for add/edit; UploadInput for image
+│   │   ├── downloads/page.tsx                # Client: list + fixed right slide-in panel for add/edit; UploadInput for file; publish toggle
 │   │   ├── download-leads/page.tsx           # Client: view-only paginated table, email mailto links, delete
 │   │   ├── quotes/page.tsx                   # Client: filter tabs, expandable rows, inline status + notes update
 │   │   └── blog/
 │   │       ├── page.tsx                      # Client: post list, publish toggle, edit/delete
-│   │       ├── new/page.tsx                  # Client: create post, auto-slug from title, HTML preview
-│   │       └── [id]/edit/page.tsx            # Client: edit post; URL uses MongoDB _id; PATCH uses slug
+│   │       ├── new/page.tsx                  # Client: create post, auto-slug from title, HTML preview, UploadInput for cover
+│   │       └── [id]/edit/page.tsx            # Client: edit post; URL uses MongoDB _id; PATCH uses slug; UploadInput for cover
 │   │
 │   ├── api/v1/
 │   │   ├── utils/
@@ -111,11 +112,12 @@ Sindhur/
 │   │
 │   ├── products/
 │   │   ├── page.tsx                          # Server Component: getProducts() → passes to <ProductCatalog initialProducts={...} />
-│   │   └── [slug]/page.tsx                   # Server Component: generateMetadata + full product layout
-│   │                                         # Two-column: left=<ProductGallery />, right=info panel
-│   │                                         # Sections: specs table, packaging, export info, bottom CTA banner
-│   │                                         # WA pre-fill: "...I'm interested in importing ${product.name}..."
-│   │                                         # RFQ link: /request-quote?product=${encodeURIComponent(product.name)}
+│   │   ├── [slug]/page.tsx                   # Server Component: generateMetadata + full product layout
+│   │   │                                     # Two-column: left=<ProductGallery />, right=info panel
+│   │   │                                     # Sections: specs table, packaging, export info, bottom CTA banner
+│   │   │                                     # WA pre-fill: "...I'm interested in importing ${product.name}..."
+│   │   │                                     # RFQ link: /request-quote?product=${encodeURIComponent(product.name)}
+│   │   └── [slug]/edit/page.tsx              # Server: redirect shim → /admin/products/${slug}/edit
 │   ├── request-quote/page.tsx                # Client: useSearchParams() in Suspense; pre-fills productInterested from ?product=
 │   │                                         # 3 sections: About You, Product Requirements, Additional Details
 │   │                                         # Sidebar: "What Happens Next?" + WA/email links
@@ -133,6 +135,13 @@ Sindhur/
 │   └── globals.css                           # @import "tailwindcss"; @theme inline {}; @theme {} color tokens
 │
 ├── components/
+│   ├── admin/
+│   │   ├── MultiImageUpload.tsx              # Client: multi-image upload grid → Supabase Storage
+│   │   │                                     # Props: { values: string[], onChange: (urls: string[]) => void, folder?: string }
+│   │   │                                     # Uploads multiple files; 2-3 col grid; hover X to remove; first = MAIN badge
+│   │   └── UploadInput.tsx                   # Client: single file/image upload → Supabase Storage
+│   │                                         # Props: { value, onChange, folder?, accept?, label?, hint? }
+│   │                                         # Shows image preview or file card; Change/Remove buttons; drop zone when empty
 │   ├── Navbar.tsx                            # Client: scroll threshold 40px, mobile hamburger, Admin link hardcoded (not in NAV_LINKS)
 │   ├── HeroSection.tsx                       # Client: useRef for parallax scroll
 │   ├── AboutSection.tsx                      # Server: story text, CERTIFICATIONS[], image collage, floating award card
@@ -152,6 +161,14 @@ Sindhur/
 │   ├── TestimonialsSection.tsx               # Server: 3 TESTIMONIALS[] cards + brand certification strip
 │   ├── ContactSection.tsx                    # Client: fetch POST /api/v1/quotes; toast feedback
 │   └── Footer.tsx                            # Server: FOOTER_LINKS{}, SOCIAL_LINKS[], CERTIFICATIONS[], copyright with Visakhapatnam
+│
+├── utils/
+│   └── supabase/
+│       ├── client.ts                         # createBrowserClient() — import in Client Components
+│       ├── server.ts                         # createServerClient(cookieStore) — import in Server Components / API routes
+│       ├── middleware.ts                     # createClient(request) — import in Next.js middleware context
+│       └── storage.ts                       # SUPABASE_STORAGE_BUCKET (from env, default "products")
+│                                             # getUploadErrorMessage(err: unknown): string
 │
 ├── shared/
 │   ├── context/
@@ -187,7 +204,8 @@ Sindhur/
 │   └── index.ts                              # Product, Testimonial, ProcessStep, WhyChooseItem, Country, NavLink
 │
 ├── middleware.ts                             # Edge Runtime: jose jwtVerify protects /admin/:path*; redirects to /login?from=
-├── next.config.ts                            # serverExternalPackages: ["mongoose"], image remotePatterns
+├── proxy.ts                                  # Standalone JWT proxy utility — same logic as middleware but importable
+├── next.config.ts                            # serverExternalPackages: ["mongoose"], image remotePatterns (Unsplash + Supabase dynamic)
 ├── tsconfig.json                             # strict, paths: { "@/*": ["./*"] }
 ├── postcss.config.mjs                        # plugins: { "@tailwindcss/postcss": {} }
 ├── package.json                              # runtime deps (see below)
@@ -200,6 +218,8 @@ Sindhur/
 
 ```json
 {
+  "@supabase/ssr": "^0.12.0",
+  "@supabase/supabase-js": "^2.108.2",
   "bcryptjs": "^3.0.3",
   "jose": "^6.2.3",
   "jsonwebtoken": "^9.0.3",
@@ -255,6 +275,25 @@ ProductCatalog.tsx (Client Component)
   → renders: breadcrumb, ProductGallery (Client), info panel, specs table, CTA
 ```
 
+### Supabase file upload flow
+
+```
+Admin opens product form (new or edit)
+  → <MultiImageUpload values={form.images} onChange={...} folder="products/images" />
+  → User clicks "Add image" or drag area
+  → FileList → for each file:
+      path = `products/images/${Date.now()}-${random}.${ext}`
+      supabase.storage.from("products").upload(path, file)
+      supabase.storage.from("products").getPublicUrl(path) → publicUrl
+  → publicUrl appended to form.images[]
+  → On save: images[] stored in MongoDB as IProduct.images
+
+Same pattern for UploadInput (single file):
+  → certifications: imageUrl / documentUrl fields
+  → downloads: fileUrl field
+  → blog: coverImage field
+```
+
 ### Gated download flow
 
 ```
@@ -307,9 +346,7 @@ Logout
 
 ```
 /admin/products/[id]/edit (URL param = MongoDB _id)
-  → fetch /api/v1/products?admin=true&limit=200 (list, no fullDescription/specifications)
-  → find product where _id matches param.id → get slug
-  → fetch /api/v1/products/${slug}?admin=true (full document with specifications)
+  → fetch /api/v1/products/${id}?admin=true  (uses _id or slug as the path param)
   → pre-fill form with full data
   → PATCH /api/v1/products/${product.slug} (NOT by _id — API is slug-keyed)
 ```
@@ -351,7 +388,8 @@ indexes: { slug: 1 unique }, { status: 1 }, { status: 1, publishedAt: -1 }
 ```
 name, slug, category, shortDescription, fullDescription: required
 slug: unique, indexed
-images: [String], specifications: [specSchema], availableGrades: [String]
+images: [String]  ← Supabase Storage public URLs
+specifications: [specSchema], availableGrades: [String]
 packagingOptions: [String], certifications: [String]
 incotermsSupported: [String], paymentTerms: [String], exportMarkets: [String]
 privateLabelAvailable: Boolean default false
@@ -374,7 +412,7 @@ indexes: { createdAt: -1 }, { status: 1, createdAt: -1 }, { country: 1 }
 ```
 name, issuingAuthority: required
 certificateNumber?, validFrom?: Date, validTo?: Date
-imageUrl?, documentUrl?, description?
+imageUrl?, documentUrl?, description?   ← both can be Supabase Storage URLs
 status: enum ["active","expired","hidden"], default "active"
 indexes: { status: 1 }
 ```
@@ -382,6 +420,7 @@ indexes: { status: 1 }
 ### Download (collection: `downloads`)
 ```
 title, description, fileUrl, type: required
+fileUrl  ← Supabase Storage public URL
 type: enum ["Company Profile","Product Catalog","Certification","Brochure","Other"]
 requiresLeadCapture: Boolean default false
 status: enum ["draft","published"], default "published"
@@ -596,10 +635,8 @@ The Admin link (`href="/admin"`) is **hardcoded** in `Navbar.tsx`, not in `NAV_L
 ### Blog + product edit: \_id in URL vs slug in API
 
 Both `/admin/blog/[id]/edit` and `/admin/products/[id]/edit` use MongoDB `_id` in the URL. There are no single-resource-by-id API endpoints. Both pages:
-1. Fetch full list (`?admin=true&limit=100/200`)
-2. Find the item where `item._id === params.id` to get the slug
-3. Fetch the full item by slug for complete data (products only — needed for specifications)
-4. PATCH by slug
+1. Fetch the full item directly (blog: by `_id`, products: by `_id` used as the API path param)
+2. PATCH by slug
 
 ### MongoDB singleton
 
@@ -651,6 +688,24 @@ const active = pathname === href || (href !== "/admin" && pathname.startsWith(hr
 
 The `/admin` root is an exact match only — otherwise every admin page would highlight the Dashboard.
 
+### Supabase upload path convention
+
+Upload components receive a `folder` prop. Use descriptive, consistent folder names:
+- Product images → `folder="products/images"` (default for MultiImageUpload in product forms)
+- Blog cover images → `folder="blog/covers"`
+- Certification images → `folder="certifications"`
+- Download files → `folder="downloads"`
+
+The bucket is always `SUPABASE_STORAGE_BUCKET` (default: `"products"`).
+
+### next.config.ts image remotePatterns
+
+Supabase hostname is derived dynamically from `NEXT_PUBLIC_SUPABASE_URL` via `getSupabaseHostname()`. Fallback hostname: `oresprkgtglnhbiyqlzs.supabase.co`. Allowed path: `/storage/v1/object/public/**`.
+
+### `/products/[slug]/edit` redirect
+
+`app/products/[slug]/edit/page.tsx` is a Server Component that calls `redirect("/admin/products/${slug}/edit")`. It exists for convenience — links that land on the public product URL + `/edit` are forwarded to the admin panel.
+
 ---
 
 ## Products (6 static — `lib/data.ts`)
@@ -676,20 +731,20 @@ These are the homepage marketing cards in `PRODUCTS[]`. Separate from the MongoD
 - No `/api/v1/products/[id]` route — product API is slug-based, not id-based
 - No `/api/v1/rfq/[id]` GET — no single RFQ fetch by id
 - No `/api/v1/certifications/[id]` GET — no single cert fetch
-- No rate limiting (Redis/Upstash in `.env.local` but zero wiring)
-- No email notifications (Brevo configured but no mailer)
-- No image upload UI (Supabase configured but no upload component)
+- No rate limiting (Redis/Upstash credentials in `.env.local` but zero wiring)
+- No email notifications (Brevo/Zoho credentials configured but no mailer implemented)
 - No roles beyond `"Admin"` (no Buyer, Manager, Farmer)
 - No `src/` directory — all files at project root
 - No Storybook, Jest, Playwright, or test files
 - No i18n / locale routing
 - No dark mode toggle
 - No `/api/v1/blog/[id]` endpoint — blog API is slug-based only
-- No BullMQ workers or background jobs
+- No BullMQ workers or background jobs (Upstash credentials present but no queue wiring)
 - No CI/CD configuration (no `.github/workflows/`, no Dockerfile)
 - The mobile Navbar does NOT include the Admin link (desktop-only)
 - The `/api/v1/blog` list endpoint always omits `content` — never returns full HTML in lists
 - AI export assistant was explicitly NOT implemented
+- No JWT refresh token flow implemented — `JWT_REFRESH_SECRET` and `JWT_REFRESH_EXPIRES_IN` are in `.env.local` but not wired in any route
 
 ---
 
@@ -701,14 +756,21 @@ These are the homepage marketing cards in `PRODUCTS[]`. Separate from the MongoD
 | `JWT_SECRET` | `middleware.ts` (jose), `verifyToken.tsx` (jsonwebtoken), login route |
 | `JWT_EXPIRES_IN` | login route — `jwt.sign(payload, secret, { expiresIn })` |
 | `JWT_COOKIE_MAX_AGE` | login route — `Set-Cookie Max-Age` in seconds (e.g. `604800` = 7 days) |
+| `JWT_REFRESH_SECRET` | Reserved — not yet wired in any route |
+| `JWT_REFRESH_EXPIRES_IN` | Reserved — not yet wired in any route |
 | `BCRYPT_SALT_ROUNDS` | register route — `bcrypt.hash(password, rounds)` |
 | `NEXT_PUBLIC_APP_URL` | Server Components — `fetch(`${NEXT_PUBLIC_APP_URL}/api/v1/...`)` |
-| `BREVO_*` | Not yet wired (reserved for email notifications) |
-| `NEXT_PUBLIC_SUPABASE_*` | Not yet wired (reserved for image/file uploads) |
-| `OPENAI_API_KEY` | Not yet wired |
-| `REDIS_URL` / `UPSTASH_*` | Not yet wired (reserved for rate limiting) |
+| `NEXT_PUBLIC_APP_NAME` | App display name (e.g. `"Syndhur"`) |
+| `NEXT_PUBLIC_SUPABASE_URL` | `utils/supabase/client.ts`, `server.ts`, `middleware.ts` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Same as above — Supabase anon key |
+| `NEXT_PUBLIC_SUPABASE_BUCKET` | `utils/supabase/storage.ts` — storage bucket name |
+| `NEXT_PUBLIC_SUPABASE_STORAGE_PUBLIC_URL` | Public base URL for storage files (informational) |
+| `BREVO_*` | Email SMTP (Brevo/Sendinblue) — credentials present, no mailer wired |
+| `ZOHO_*` | Zoho SMTP — credentials present, not wired |
+| `EMAIL_FROM` | Sender name/address for future email feature |
+| `REDIS_URL` / `UPSTASH_*` | Rate limiting — credentials present, not yet wired |
 
-> **Before going live:** Set `NEXT_PUBLIC_APP_URL` to the production domain. Update `EMAIL_FROM` to `Sindhur Exports <varma.v.business@gmail.com>`.
+> **Before going live:** Set `NEXT_PUBLIC_APP_URL` to the production domain. Ensure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set — uploads fail without them.
 
 ---
 

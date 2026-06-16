@@ -24,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const rfq = await RFQModel.findByIdAndUpdate(
       id,
       { $set: update },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     ).lean();
 
     if (!rfq) return NextResponse.json(failure("RFQ not found"), { status: 404 });

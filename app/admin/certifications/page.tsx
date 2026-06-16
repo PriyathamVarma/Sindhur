@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Award, Plus, PenLine, Trash2, X } from "lucide-react";
+import UploadInput from "@/components/admin/UploadInput";
 import type { ICertification, CertificationStatus } from "@/shared/interfaces/mongodb/certifications/certification";
 import { formatDate } from "@/shared/lib/utils";
 import toast from "react-hot-toast";
@@ -111,8 +112,27 @@ export default function AdminCertificationsPage() {
                 <div><label className={labelCls}>Valid From</label><input type="date" className={inputCls} value={form.validFrom} onChange={(e) => set("validFrom", e.target.value)} /></div>
                 <div><label className={labelCls}>Valid To</label><input type="date" className={inputCls} value={form.validTo} onChange={(e) => set("validTo", e.target.value)} /></div>
               </div>
-              <div><label className={labelCls}>Image URL</label><input className={inputCls} placeholder="https://..." value={form.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} /></div>
-              <div><label className={labelCls}>Document URL</label><input className={inputCls} placeholder="https://..." value={form.documentUrl} onChange={(e) => set("documentUrl", e.target.value)} /></div>
+              <div>
+                <label className={labelCls}>Certificate Image</label>
+                <UploadInput
+                  value={form.imageUrl}
+                  onChange={(url) => set("imageUrl", url)}
+                  folder="certifications"
+                  label="certificate image"
+                  hint="PNG, JPG, SVG — logo or seal"
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Certificate Document</label>
+                <UploadInput
+                  value={form.documentUrl}
+                  onChange={(url) => set("documentUrl", url)}
+                  folder="certifications"
+                  accept="application/pdf,image/*"
+                  label="certificate document"
+                  hint="PDF or image of the certificate"
+                />
+              </div>
               <div><label className={labelCls}>Description</label><textarea rows={3} className={inputCls} value={form.description} onChange={(e) => set("description", e.target.value)} /></div>
               <div><label className={labelCls}>Status</label>
                 <select className={inputCls} value={form.status} onChange={(e) => set("status", e.target.value)}>

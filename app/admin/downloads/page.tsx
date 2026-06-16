@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Download, Plus, PenLine, Trash2, X, Eye, EyeOff } from "lucide-react";
+import UploadInput from "@/components/admin/UploadInput";
 import type { IDownload, DownloadType, DownloadStatus } from "@/shared/interfaces/mongodb/downloads/download";
 import toast from "react-hot-toast";
 
@@ -110,7 +111,17 @@ export default function AdminDownloadsPage() {
             <div className="space-y-4">
               <div><label className={labelCls}>Title *</label><input required className={inputCls} placeholder="Company Profile 2024" value={form.title} onChange={(e) => set("title", e.target.value)} /></div>
               <div><label className={labelCls}>Description *</label><textarea rows={2} className={inputCls} placeholder="Brief description..." value={form.description} onChange={(e) => set("description", e.target.value)} /></div>
-              <div><label className={labelCls}>File URL *</label><input required className={inputCls} placeholder="https://..." value={form.fileUrl} onChange={(e) => set("fileUrl", e.target.value)} /></div>
+              <div>
+                <label className={labelCls}>File *</label>
+                <UploadInput
+                  value={form.fileUrl}
+                  onChange={(url) => set("fileUrl", url)}
+                  folder="documents"
+                  accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*"
+                  label="document"
+                  hint="PDF, Word, or image file"
+                />
+              </div>
               <div><label className={labelCls}>Type *</label>
                 <select required className={inputCls} value={form.type} onChange={(e) => set("type", e.target.value)}>
                   {TYPES.map((t) => <option key={t}>{t}</option>)}

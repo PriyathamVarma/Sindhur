@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Plus, Minus } from "lucide-react";
+import MultiImageUpload from "@/components/admin/MultiImageUpload";
 import toast from "react-hot-toast";
-import { slugify } from "@/shared/lib/utils";
 import type { IProduct, ProductStatus } from "@/shared/interfaces/mongodb/products/product";
 
 const CATEGORIES = ["Agri Commodities", "Organic Products", "Spices", "Processed Foods", "Other"];
@@ -26,7 +26,7 @@ export default function EditProductPage() {
 
   const [form, setForm] = useState({
     name: "", slug: "", category: "", shortDescription: "", fullDescription: "",
-    imagesText: "", scientificName: "", hsCode: "", origin: "", shelfLife: "", leadTime: "",
+    images: [] as string[], scientificName: "", hsCode: "", origin: "", shelfLife: "", leadTime: "",
     availableGradesText: "", certificationsText: "", packagingOptionsText: "",
     exportMarketsText: "", moq: "", containerCapacity: "",
     incotermsSupported: [] as string[], paymentTerms: [] as string[],
@@ -37,22 +37,17 @@ export default function EditProductPage() {
 
   useEffect(() => {
     async function load() {
-      const res  = await fetch("/api/v1/products?admin=true&limit=200", { credentials: "include" });
+      const res  = await fetch(`/api/v1/products/${id}?admin=true`, { credentials: "include" });
       const data = await res.json();
-      if (!data.success) { toast.error("Failed to load products"); return; }
+      if (!data.success) { toast.error("Product not found"); router.push("/admin/products"); return; }
 
-      const found: IProduct | undefined = data.data.items.find((p: IProduct) => String(p._id) === id);
-      if (!found) { toast.error("Product not found"); router.push("/admin/products"); return; }
-
-      const fullRes  = await fetch(`/api/v1/products/${found.slug}?admin=true`, { credentials: "include" });
-      const fullData = await fullRes.json();
-      const p: IProduct = fullData.success ? fullData.data : found;
+      const p: IProduct = data.data;
       setProduct(p);
 
       setForm({
         name: p.name, slug: p.slug, category: p.category,
-        shortDescription: p.shortDescription, fullDescription: p.fullDescription,
-        imagesText:          p.images?.join("\n") || "",
+        shortDescription: p.shortDescription, fullDescription: p.fullDescription ?? "",
+        images:              p.images || [],
         scientificName:      p.scientificName    || "",
         hsCode:              p.hsCode            || "",
         origin:              p.origin            || "",
@@ -66,8 +61,8 @@ export default function EditProductPage() {
         containerCapacity:   p.containerCapacity || "",
         incotermsSupported:  p.incotermsSupported || [],
         paymentTerms:        p.paymentTerms       || [],
-        privateLabelAvailable: p.privateLabelAvailable,
-        sampleAvailable:       p.sampleAvailable,
+        privateLabelAvailable: p.privateLabelAvailable ?? false,
+        sampleAvailable:       p.sampleAvailable ?? false,
         status:              p.status,
       });
       setSpecs(p.specifications?.length ? p.specifications : [{ label: "", value: "" }]);
@@ -102,7 +97,7 @@ export default function EditProductPage() {
       const payload = {
         name: form.name, category: form.category,
         shortDescription: form.shortDescription, fullDescription: form.fullDescription,
-        images:            form.imagesText.split("\n").map((s) => s.trim()).filter(Boolean),
+        images:            form.images,
         scientificName:    form.scientificName, hsCode: form.hsCode, origin: form.origin,
         shelfLife:         form.shelfLife,       leadTime: form.leadTime,
         availableGrades:   split(form.availableGradesText),
@@ -163,6 +158,7 @@ export default function EditProductPage() {
             <div>
               <label className={labelCls}>Category *</label>
               <select required className={inputCls} value={form.category} onChange={(e) => set("category", e.target.value)}>
+                <option value="">Select category...</option>
                 {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
               </select>
             </div>
@@ -208,9 +204,12 @@ export default function EditProductPage() {
         </div>
 
         <div className={sectionCls}>
-          <h2 className="font-black text-gray-900 text-[17px] mb-2">Product Images</h2>
-          <p className="text-gray-400 text-[12px] mb-4">One URL per line.</p>
-          <textarea rows={4} className={inputCls} value={form.imagesText} onChange={(e) => set("imagesText", e.target.value)} />
+          <h2 className="font-black text-gray-900 text-[17px] mb-4">Product Images</h2>
+          <MultiImageUpload
+            values={form.images}
+            onChange={(urls) => set("images", urls)}
+            folder="products"
+          />
         </div>
 
         <div className={sectionCls}>

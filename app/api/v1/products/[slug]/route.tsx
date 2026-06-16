@@ -42,7 +42,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const product = await ProductModel.findOneAndUpdate(
       { slug },
       { $set: body },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     ).lean();
 
     if (!product) return NextResponse.json(failure("Product not found"), { status: 404 });

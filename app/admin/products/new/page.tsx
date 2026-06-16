@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Minus } from "lucide-react";
+import MultiImageUpload from "@/components/admin/MultiImageUpload";
 import toast from "react-hot-toast";
 import { slugify } from "@/shared/lib/utils";
 import type { ProductStatus } from "@/shared/interfaces/mongodb/products/product";
@@ -24,7 +25,7 @@ export default function NewProductPage() {
 
   const [form, setForm] = useState({
     name: "", slug: "", category: "", shortDescription: "", fullDescription: "",
-    imagesText: "", scientificName: "", hsCode: "", origin: "", shelfLife: "", leadTime: "",
+    images: [] as string[], scientificName: "", hsCode: "", origin: "", shelfLife: "", leadTime: "",
     availableGradesText: "", certificationsText: "", packagingOptionsText: "",
     exportMarketsText: "", moq: "", containerCapacity: "",
     incotermsSupported: [] as string[], paymentTerms: [] as string[],
@@ -67,7 +68,7 @@ export default function NewProductPage() {
       const payload = {
         name: form.name, slug: form.slug, category: form.category,
         shortDescription: form.shortDescription, fullDescription: form.fullDescription,
-        images:            form.imagesText.split("\n").map((s) => s.trim()).filter(Boolean),
+        images:            form.images,
         scientificName:    form.scientificName, hsCode: form.hsCode, origin: form.origin,
         shelfLife:         form.shelfLife,       leadTime: form.leadTime,
         availableGrades:   split(form.availableGradesText),
@@ -194,9 +195,12 @@ export default function NewProductPage() {
 
         {/* Images */}
         <div className={sectionCls}>
-          <h2 className="font-black text-gray-900 text-[17px] mb-2">Product Images</h2>
-          <p className="text-gray-400 text-[12px] mb-4">One image URL per line. First image is the main/thumbnail.</p>
-          <textarea rows={4} className={inputCls} placeholder={"https://example.com/image1.jpg\nhttps://example.com/image2.jpg"} value={form.imagesText} onChange={(e) => set("imagesText", e.target.value)} />
+          <h2 className="font-black text-gray-900 text-[17px] mb-4">Product Images</h2>
+          <MultiImageUpload
+            values={form.images}
+            onChange={(urls) => set("images", urls)}
+            folder="products"
+          />
         </div>
 
         {/* Grades & Certs */}

@@ -1,6 +1,6 @@
 # Sindhur Exports — B2B Export Platform
 
-Full-stack B2B export business platform for **Sindhur Exports**, a Visakhapatnam-based Indian export company. Built with Next.js 16 App Router, React 19, MongoDB Atlas, and Tailwind CSS v4.
+Full-stack B2B export business platform for **Sindhur Exports**, a Visakhapatnam-based Indian export company. Built with Next.js 16 App Router, React 19, MongoDB Atlas, Tailwind CSS v4, and Supabase Storage.
 
 ---
 
@@ -17,6 +17,7 @@ Full-stack B2B export business platform for **Sindhur Exports**, a Visakhapatnam
 - [Admin Panel](#admin-panel)
 - [Blog System](#blog-system)
 - [Authentication](#authentication)
+- [File Uploads](#file-uploads)
 - [WhatsApp Integration](#whatsapp-integration)
 - [Environment Variables](#environment-variables)
 - [Deployment](#deployment)
@@ -46,6 +47,8 @@ The platform serves three audiences:
 | Styling | Tailwind CSS v4 | ^4 |
 | CSS processing | @tailwindcss/postcss | ^4 |
 | Database | MongoDB Atlas via Mongoose | ^9.7.0 |
+| File storage | Supabase Storage | ^2.108.2 |
+| Supabase SSR | @supabase/ssr | ^0.12.0 |
 | Password hashing | bcryptjs | ^3.0.3 |
 | JWT (API routes) | jsonwebtoken | ^9.0.3 |
 | JWT (middleware/Edge) | jose | ^6.2.3 |
@@ -54,7 +57,7 @@ The platform serves three audiences:
 | Toast notifications | react-hot-toast | ^2.6.0 |
 | Fonts | Google Fonts via next/font | — |
 
-**Dev dependencies:** `@types/bcryptjs`, `@types/jsonwebtoken`, `@types/marked`, `eslint`, `eslint-config-next`
+**Dev dependencies:** `@tailwindcss/postcss`, `@types/bcryptjs`, `@types/jsonwebtoken`, `@types/marked`, `eslint`, `eslint-config-next`
 
 ---
 
@@ -64,6 +67,7 @@ The platform serves three audiences:
 
 - Node.js 18+
 - A MongoDB Atlas cluster with the `syndhur-exports` database (configured in `.env.local`)
+- A Supabase project with a storage bucket named `products` (configured in `.env.local`)
 
 ### Install & run
 
@@ -102,17 +106,17 @@ Sindhur/
 │   │   ├── page.tsx                    # Dashboard: 8 stat cards + quick actions + recent quotes
 │   │   ├── products/
 │   │   │   ├── page.tsx                # Product list with filter tabs, publish toggle, edit/delete
-│   │   │   ├── new/page.tsx            # Product creation form (8 sections, dynamic spec rows)
-│   │   │   └── [id]/edit/page.tsx      # Edit product (URL uses _id; PATCH uses slug)
+│   │   │   ├── new/page.tsx            # Product creation form (8 sections, MultiImageUpload)
+│   │   │   └── [id]/edit/page.tsx      # Edit product (URL uses _id; fetches full product by id/slug)
 │   │   ├── rfq/page.tsx                # RFQ pipeline: status tabs, search, expandable accordions
-│   │   ├── certifications/page.tsx     # Certifications list + slide-in add/edit panel
-│   │   ├── downloads/page.tsx          # Downloads list + slide-in add/edit panel
+│   │   ├── certifications/page.tsx     # Certifications list + slide-in add/edit panel (UploadInput)
+│   │   ├── downloads/page.tsx          # Downloads list + slide-in add/edit panel (UploadInput)
 │   │   ├── download-leads/page.tsx     # View-only leads table with pagination
 │   │   ├── quotes/page.tsx             # Legacy quote request manager
 │   │   └── blog/
 │   │       ├── page.tsx                # Blog post list
-│   │       ├── new/page.tsx            # Create post form
-│   │       └── [id]/edit/page.tsx      # Edit post form (finds post by MongoDB _id)
+│   │       ├── new/page.tsx            # Create post form (UploadInput for cover image)
+│   │       └── [id]/edit/page.tsx      # Edit post form (UploadInput for cover image)
 │   │
 │   ├── api/v1/
 │   │   ├── utils/
@@ -149,7 +153,8 @@ Sindhur/
 │   │
 │   ├── products/
 │   │   ├── page.tsx                    # Server Component: fetches products, passes to ProductCatalog
-│   │   └── [slug]/page.tsx             # Server Component: full product page with generateMetadata
+│   │   ├── [slug]/page.tsx             # Server Component: full product page with generateMetadata
+│   │   └── [slug]/edit/page.tsx        # Redirect shim → /admin/products/[slug]/edit
 │   ├── request-quote/
 │   │   └── page.tsx                    # Client Component (wrapped in Suspense): RFQ form
 │   ├── trust/
@@ -165,6 +170,9 @@ Sindhur/
 │   └── globals.css                     # Tailwind v4 import + @theme {} color tokens
 │
 ├── components/
+│   ├── admin/
+│   │   ├── MultiImageUpload.tsx        # Client: multi-image upload grid → Supabase Storage
+│   │   └── UploadInput.tsx             # Client: single file/image upload → Supabase Storage
 │   ├── Navbar.tsx                      # Client: scroll-aware, mobile hamburger, Blog + Admin links
 │   ├── HeroSection.tsx                 # Client: parallax scroll via useRef
 │   ├── AboutSection.tsx                # Server: story, certifications, image collage
@@ -178,6 +186,13 @@ Sindhur/
 │   ├── TestimonialsSection.tsx         # Server: 3 testimonial cards + brand strip
 │   ├── ContactSection.tsx              # Client: form → POST /api/v1/quotes
 │   └── Footer.tsx                      # Server: links, real contact info, social icons
+│
+├── utils/
+│   └── supabase/
+│       ├── client.ts                   # createBrowserClient() — used in Client Components
+│       ├── server.ts                   # createServerClient() — used in Server Components / API routes
+│       ├── middleware.ts               # createClient() for Next.js middleware context
+│       └── storage.ts                 # SUPABASE_STORAGE_BUCKET constant + getUploadErrorMessage()
 │
 ├── shared/
 │   ├── context/
@@ -210,7 +225,8 @@ Sindhur/
 │   └── index.ts                        # TypeScript types for marketing data shapes
 │
 ├── middleware.ts                        # Edge: jose jwtVerify → protects /admin/:path*
-├── next.config.ts                       # serverExternalPackages: ["mongoose"], image remotePatterns
+├── proxy.ts                            # Standalone JWT proxy utility (mirrors middleware logic)
+├── next.config.ts                       # serverExternalPackages: ["mongoose"], image remotePatterns (Unsplash + Supabase)
 ├── tsconfig.json                        # strict, @/* alias → project root
 ├── postcss.config.mjs                   # @tailwindcss/postcss plugin
 └── .env.local                           # Secrets — never commit
@@ -227,6 +243,7 @@ Sindhur/
 | `/` | Static (SSG) | Homepage — all marketing sections |
 | `/products` | Server + Client | Product catalog with interactive search/filter |
 | `/products/[slug]` | Dynamic (SSR) | Full product page: gallery, specs, CTA, WhatsApp pre-fill |
+| `/products/[slug]/edit` | Redirect | Redirects to `/admin/products/[slug]/edit` |
 | `/request-quote` | Client (Suspense) | Advanced RFQ form; pre-fills from `?product=` param |
 | `/trust` | Server (SSR) | Certifications, QA process, stats — pulls live DB data |
 | `/downloads` | Client | Download center with gated lead capture modal |
@@ -241,16 +258,16 @@ Sindhur/
 |---|---|
 | `/admin` | Dashboard — 8 stat cards (RFQ, leads, quotes, blog) + quick actions |
 | `/admin/products` | Product list — filter by status, publish toggle, edit/delete |
-| `/admin/products/new` | Create product — 8 form sections, dynamic spec rows |
-| `/admin/products/[id]/edit` | Edit product — URL uses MongoDB `_id`, patches by slug |
+| `/admin/products/new` | Create product — 8 form sections, MultiImageUpload |
+| `/admin/products/[id]/edit` | Edit product — URL uses MongoDB `_id`, full upload support |
 | `/admin/rfq` | RFQ pipeline — 8 status tabs, search, expandable accordions, email/WA links |
-| `/admin/certifications` | Certifications — list + slide-in add/edit panel |
-| `/admin/downloads` | Downloads — list + slide-in add/edit, publish toggle |
+| `/admin/certifications` | Certifications — list + slide-in add/edit panel with image upload |
+| `/admin/downloads` | Downloads — list + slide-in add/edit, file upload, publish toggle |
 | `/admin/download-leads` | Download leads — view-only table with pagination |
 | `/admin/quotes` | Legacy quote request list, status management, admin notes |
 | `/admin/blog` | Blog post list — publish/unpublish, delete |
-| `/admin/blog/new` | Create new article |
-| `/admin/blog/[id]/edit` | Edit existing article (routed by MongoDB `_id`) |
+| `/admin/blog/new` | Create new article with cover image upload |
+| `/admin/blog/[id]/edit` | Edit existing article with cover image upload |
 
 ### API Routes
 
@@ -277,7 +294,7 @@ Sindhur/
 | `POST` | `/api/v1/downloads` | JWT | Create download resource |
 | `PATCH` | `/api/v1/downloads/[id]` | JWT | Update download resource |
 | `DELETE` | `/api/v1/downloads/[id]` | JWT | Delete download resource |
-| `POST` | `/api/v1/download-leads` | — | Capture lead; returns `{ lead, fileUrl }` for frontend to trigger download |
+| `POST` | `/api/v1/download-leads` | — | Capture lead + return fileUrl for frontend to trigger download |
 | `GET` | `/api/v1/download-leads` | JWT | List all download leads, paginated |
 | `DELETE` | `/api/v1/download-leads/[id]` | JWT | Delete a lead record |
 | `POST` | `/api/v1/quotes` | — | Submit legacy quote request |
@@ -308,7 +325,7 @@ export interface IProduct {
   category: string;
   shortDescription: string;
   fullDescription: string;        // raw HTML
-  images: string[];               // CDN/Unsplash URLs
+  images: string[];               // Supabase Storage public URLs
   scientificName?: string;
   hsCode?: string;
   origin?: string;
@@ -436,7 +453,7 @@ export interface IDownloadLead {
 
 ### `IUser`, `IQuoteRequest`, `IBlogPost`
 
-See [Authentication](#authentication) and [Blog System](#blog-system) sections. These existed before Phase 1.
+See [Authentication](#authentication) and [Blog System](#blog-system) sections.
 
 ---
 
@@ -582,7 +599,7 @@ Each card links to its respective admin route.
 1. **Basic Info** — name, category, status, short description, sample + private label checkboxes
 2. **Product Details** — scientific name, HS code, origin, shelf life, lead time, MOQ
 3. **Full Description** — HTML textarea
-4. **Images** — one URL per line, split on `\n`
+4. **Images** — `MultiImageUpload` component: click to upload, drag-to-remove, first image = main thumbnail; uploads directly to Supabase Storage
 5. **Grades & Certifications** — comma-separated text inputs
 6. **Technical Specifications** — dynamic `{label, value}[]` rows (Add Row / remove buttons)
 7. **Packaging & Logistics** — packaging options (comma-separated), container capacity
@@ -595,6 +612,8 @@ Name auto-generates slug via `slugify(name)` unless the slug field was manually 
 ## Blog System
 
 Content is stored as raw **HTML**. Editor accepts standard HTML tags. A Preview toggle renders via `dangerouslySetInnerHTML` with Tailwind `prose` classes.
+
+Cover images are uploaded directly to Supabase Storage via the `UploadInput` component.
 
 Slug generation: `slugify(title)`. Collision handling: appends `-${Date.now()}`.
 
@@ -628,6 +647,41 @@ Every admin API call
 
 ---
 
+## File Uploads
+
+All file/image uploads use **Supabase Storage** via the `@supabase/ssr` client.
+
+### Upload components
+
+| Component | Location | Used in | Description |
+|---|---|---|---|
+| `MultiImageUpload` | `components/admin/MultiImageUpload.tsx` | Product new/edit | Accepts multiple files; grid preview with hover-to-remove; first = main thumbnail |
+| `UploadInput` | `components/admin/UploadInput.tsx` | Blog, certifications, downloads | Single file or image; shows image preview or file card; Change/Remove buttons |
+
+### Supabase utilities
+
+| File | Purpose |
+|---|---|
+| `utils/supabase/client.ts` | `createClient()` for Client Components (`createBrowserClient`) |
+| `utils/supabase/server.ts` | `createClient(cookieStore)` for Server Components / route handlers |
+| `utils/supabase/middleware.ts` | `createClient(request)` for Next.js middleware context |
+| `utils/supabase/storage.ts` | `SUPABASE_STORAGE_BUCKET` constant + `getUploadErrorMessage()` helper |
+
+### Upload flow
+
+```
+User selects file(s) in upload component
+  → createClient() (browser)
+  → supabase.storage.from(SUPABASE_STORAGE_BUCKET).upload(path, file)
+  → path: `${folder}/${Date.now()}-${random}.${ext}`
+  → supabase.storage.from(SUPABASE_STORAGE_BUCKET).getPublicUrl(path)
+  → returns publicUrl → stored in MongoDB as the image/file URL
+```
+
+Default bucket: `products` (set via `NEXT_PUBLIC_SUPABASE_BUCKET`).
+
+---
+
 ## WhatsApp Integration
 
 A floating sticky button component (`components/WhatsAppButton.tsx`) is added to `app/layout.tsx` and renders on every page. It reads `usePathname()` and hides itself on `/admin/*`, `/login`, `/register`, `/buyer` routes.
@@ -652,14 +706,22 @@ Product detail pages pre-fill the WA message with the specific product name:
 | `JWT_SECRET` | HMAC secret for signing/verifying JWTs |
 | `JWT_EXPIRES_IN` | Token lifetime (e.g. `7d`) |
 | `JWT_COOKIE_MAX_AGE` | Cookie `maxAge` in seconds (e.g. `604800`) |
+| `JWT_REFRESH_SECRET` | Secret for refresh tokens (reserved — not yet wired in routes) |
+| `JWT_REFRESH_EXPIRES_IN` | Refresh token lifetime (e.g. `30d`) |
 | `BCRYPT_SALT_ROUNDS` | Bcrypt work factor (e.g. `12`) |
 | `NEXT_PUBLIC_APP_URL` | Production URL for server-side API fetches (Server Components) |
-| `BREVO_*` | Email SMTP — not yet wired |
-| `NEXT_PUBLIC_SUPABASE_*` | Supabase — not yet wired (reserved for file/image uploads) |
-| `OPENAI_API_KEY` | Not yet wired (reserved for future AI features) |
-| `REDIS_URL` / `UPSTASH_*` | Not yet wired (reserved for rate limiting) |
+| `NEXT_PUBLIC_APP_NAME` | App display name (e.g. `"Syndhur"`) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/publishable key |
+| `NEXT_PUBLIC_SUPABASE_BUCKET` | Storage bucket name (default: `products`) |
+| `NEXT_PUBLIC_SUPABASE_STORAGE_PUBLIC_URL` | Public base URL for Supabase storage files |
+| `BREVO_API_KEY` | Brevo (Sendinblue) API key — wired in `.env.local`, email routes not yet implemented |
+| `BREVO_HOST` / `BREVO_PORT` / `BREVO_USER` / `BREVO_PASS` | Brevo SMTP credentials |
+| `ZOHO_HOST` / `ZOHO_PORT` / `ZOHO_USER` / `ZOHO_PASS` | Zoho SMTP credentials (reserved) |
+| `EMAIL_FROM` | Sender name/address for outbound email |
+| `REDIS_URL` / `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Rate limiting — not yet wired |
 
-> **Before going live:** Update `EMAIL_FROM` from the template default to `Sindhur Exports <varma.v.business@gmail.com>`. Set `NEXT_PUBLIC_APP_URL` to your production domain.
+> **Before going live:** Set `NEXT_PUBLIC_APP_URL` to your production domain. Ensure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set — uploads will fail without them.
 
 ---
 

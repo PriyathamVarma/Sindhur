@@ -62,7 +62,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const updated = await BlogPostModel.findOneAndUpdate(
       { slug },
       { $set: update },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     ).lean();
 
     if (!updated) return NextResponse.json(failure("Post not found"), { status: 404 });

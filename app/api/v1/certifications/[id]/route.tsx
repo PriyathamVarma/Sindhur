@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const cert = await CertificationModel.findByIdAndUpdate(
       id,
       { $set: body },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     ).lean();
 
     if (!cert) return NextResponse.json(failure("Certification not found"), { status: 404 });

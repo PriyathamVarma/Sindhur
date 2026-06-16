@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const item = await DownloadModel.findByIdAndUpdate(
       id,
       { $set: body },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     ).lean();
 
     if (!item) return NextResponse.json(failure("Download item not found"), { status: 404 });

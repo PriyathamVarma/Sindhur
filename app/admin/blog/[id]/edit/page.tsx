@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { slugify } from "@/shared/lib/utils";
 import toast from "react-hot-toast";
 import { ArrowLeft, Eye, Save, Loader2 } from "lucide-react";
+import UploadInput from "@/components/admin/UploadInput";
 import type { IBlogPost } from "@/shared/interfaces/mongodb/blog/blogPost";
 
 export default function EditBlogPostPage() {
@@ -134,17 +135,14 @@ export default function EditBlogPostPage() {
         </div>
 
         <div>
-          <label className={labelCls}>Cover Image URL</label>
-          <input
-            type="url"
+          <label className={labelCls}>Cover Image</label>
+          <UploadInput
             value={form.coverImage}
-            onChange={(e) => setForm((p) => ({ ...p, coverImage: e.target.value }))}
-            placeholder="https://images.unsplash.com/..."
-            className={inputCls}
+            onChange={(url) => setForm((p) => ({ ...p, coverImage: url }))}
+            folder="blog"
+            label="cover image"
+            hint="JPG, PNG, WebP — 16:9 ratio recommended"
           />
-          {form.coverImage && (
-            <img src={form.coverImage} alt="Cover preview" className="mt-3 h-40 w-full object-cover rounded-xl" />
-          )}
         </div>
 
         <div>

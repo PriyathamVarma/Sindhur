@@ -159,7 +159,7 @@ export default function AdminProductsPage() {
                       {product.status === "published" ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                     <a
-                      href={`/admin/products/${product._id}/edit`}
+                      href={`/admin/products/${product.slug}/edit`}
                       className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
                       title="Edit"
                     >

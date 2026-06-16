@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { slugify } from "@/shared/lib/utils";
 import toast from "react-hot-toast";
 import { ArrowLeft, Eye, Save } from "lucide-react";
+import UploadInput from "@/components/admin/UploadInput";
 
 export default function NewBlogPostPage() {
   const router = useRouter();
@@ -107,17 +108,14 @@ export default function NewBlogPostPage() {
 
         {/* Cover image */}
         <div>
-          <label className={labelCls}>Cover Image URL</label>
-          <input
-            type="url"
+          <label className={labelCls}>Cover Image</label>
+          <UploadInput
             value={form.coverImage}
-            onChange={(e) => setForm((p) => ({ ...p, coverImage: e.target.value }))}
-            placeholder="https://images.unsplash.com/..."
-            className={inputCls}
+            onChange={(url) => setForm((p) => ({ ...p, coverImage: url }))}
+            folder="blog"
+            label="cover image"
+            hint="JPG, PNG, WebP — 16:9 ratio recommended"
           />
-          {form.coverImage && (
-            <img src={form.coverImage} alt="Cover preview" className="mt-3 h-40 w-full object-cover rounded-xl" />
-          )}
         </div>
 
         {/* Excerpt */}
