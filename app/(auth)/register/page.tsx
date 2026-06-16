@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import toast from "react-hot-toast";
 import { Eye, EyeOff, UserPlus } from "lucide-react";
 
@@ -53,7 +55,7 @@ export default function RegisterPage() {
     <div className="flex-1 flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <a href="/" className="flex items-center gap-3 justify-center mb-10">
+        <Link href="/" className="flex items-center gap-3 justify-center mb-10">
           <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-200">
             <span className="text-white font-black text-base">SE</span>
           </div>
@@ -61,11 +63,19 @@ export default function RegisterPage() {
             <span className="font-bold text-[15px] text-gray-900 tracking-tight">Sindhur Exports</span>
             <span className="text-[10px] text-orange-500 tracking-[0.15em] uppercase">Admin Portal</span>
           </div>
-        </a>
+        </Link>
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
           <h1 className="text-2xl font-black text-gray-900 mb-1">Create account</h1>
           <p className="text-gray-500 text-sm mb-8">Set up your admin access</p>
+
+          <GoogleSignInButton label="Sign up with Gmail" />
+
+          <div className="flex items-center gap-3 my-6">
+            <div className="h-px bg-gray-100 flex-1" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-300">or</span>
+            <div className="h-px bg-gray-100 flex-1" />
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -151,11 +161,11 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Already have an account?{" "}
-          <a href="/login" className="text-orange-500 font-semibold hover:text-orange-600 transition">Sign in</a>
+          <Link href="/login" className="text-orange-500 font-semibold hover:text-orange-600 transition">Sign in</Link>
         </p>
 
         <p className="text-center text-xs text-gray-400 mt-4">
-          <a href="/" className="hover:text-orange-500 transition">← Back to website</a>
+          <Link href="/" className="hover:text-orange-500 transition">← Back to website</Link>
         </p>
       </div>
     </div>

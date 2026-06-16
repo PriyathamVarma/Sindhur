@@ -88,9 +88,17 @@ function AdminSidebar({
           View Website
         </a>
         <div className="flex items-center gap-3 px-4 py-2">
-          <div className="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-            <span className="text-orange-600 text-[11px] font-bold">{user?.name?.[0]?.toUpperCase() || "A"}</span>
-          </div>
+          {user?.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={user.name || user.email}
+              className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+            />
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+              <span className="text-orange-600 text-[11px] font-bold">{user?.name?.[0]?.toUpperCase() || "A"}</span>
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <p className="text-[12px] font-semibold text-gray-900 truncate">{user?.name || "Admin"}</p>
             <p className="text-[11px] text-gray-400 truncate">{user?.email || ""}</p>

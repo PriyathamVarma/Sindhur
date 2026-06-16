@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@/shared/context/UserContext";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import toast from "react-hot-toast";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 
@@ -14,6 +16,11 @@ function LoginForm() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error) toast.error(error);
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,12 +55,13 @@ function LoginForm() {
   const inputCls =
     "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 " +
     "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400 transition";
+  const from = searchParams.get("from") || "/admin";
 
   return (
     <div className="flex-1 flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <a href="/" className="flex items-center gap-3 justify-center mb-10">
+        <Link href="/" className="flex items-center gap-3 justify-center mb-10">
           <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-200">
             <span className="text-white font-black text-base">SE</span>
           </div>
@@ -61,11 +69,19 @@ function LoginForm() {
             <span className="font-bold text-[15px] text-gray-900 tracking-tight">Sindhur Exports</span>
             <span className="text-[10px] text-orange-500 tracking-[0.15em] uppercase">Admin Portal</span>
           </div>
-        </a>
+        </Link>
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
           <h1 className="text-2xl font-black text-gray-900 mb-1">Welcome back</h1>
           <p className="text-gray-500 text-sm mb-8">Sign in to your admin account</p>
+
+          <GoogleSignInButton nextPath={from} />
+
+          <div className="flex items-center gap-3 my-6">
+            <div className="h-px bg-gray-100 flex-1" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-300">or</span>
+            <div className="h-px bg-gray-100 flex-1" />
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -130,13 +146,13 @@ function LoginForm() {
 
         <p className="text-center text-sm text-gray-500 mt-6">
           New admin?{" "}
-          <a href="/register" className="text-orange-500 font-semibold hover:text-orange-600 transition">
+          <Link href="/register" className="text-orange-500 font-semibold hover:text-orange-600 transition">
             Create account
-          </a>
+          </Link>
         </p>
 
         <p className="text-center text-xs text-gray-400 mt-4">
-          <a href="/" className="hover:text-orange-500 transition">← Back to website</a>
+          <Link href="/" className="hover:text-orange-500 transition">← Back to website</Link>
         </p>
       </div>
     </div>

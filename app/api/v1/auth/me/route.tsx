@@ -4,17 +4,38 @@ import UserModel from "@/shared/models/mongodb/users/user";
 import { verifyToken } from "../../utils/verifyToken";
 import { success, failure } from "../../utils/responses";
 
+type JwtPayload = {
+  sub: string;
+};
+
+type AuthUser = {
+  _id: { toString: () => string };
+  name: string;
+  email: string;
+  role: "Admin";
+  authProvider?: "credentials" | "google";
+  supabaseUserId?: string;
+  avatarUrl?: string;
+};
+
+function getErrorMessage(err: unknown) {
+  return err instanceof Error ? err.message : "Something went wrong";
+}
+
 export async function GET(req: NextRequest) {
   const result = await verifyToken(req);
   if (result instanceof NextResponse) return result;
 
-  const payload = result as any;
+  const payload = result as JwtPayload;
   try {
     await mongoDB();
-    const user = await UserModel.findById(payload.sub).select("-passwordHash").lean();
+    const user = await UserModel
+      .findById(payload.sub)
+      .select("-passwordHash")
+      .lean<AuthUser>();
     if (!user) return NextResponse.json(failure("User not found"), { status: 404 });
-    return NextResponse.json(success({ ...(user as any), id: (user as any)._id }));
-  } catch (err: any) {
-    return NextResponse.json(failure(err?.message), { status: 500 });
+    return NextResponse.json(success({ ...user, id: user._id }));
+  } catch (err: unknown) {
+    return NextResponse.json(failure(getErrorMessage(err)), { status: 500 });
   }
 }

@@ -4,6 +4,10 @@ import { mongoDB } from "@/shared/lib/db/mongo";
 import UserModel from "@/shared/models/mongodb/users/user";
 import { success, failure } from "../../utils/responses";
 
+function getErrorMessage(err: unknown) {
+  return err instanceof Error ? err.message : "Something went wrong";
+}
+
 export async function POST(req: NextRequest) {
   try {
     await mongoDB();
@@ -27,14 +31,20 @@ export async function POST(req: NextRequest) {
       Number(process.env.BCRYPT_SALT_ROUNDS || 12),
     );
 
-    const user = await UserModel.create({ name: name.trim(), email: email.toLowerCase().trim(), passwordHash, role: "Admin" });
+    const user = await UserModel.create({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      passwordHash,
+      authProvider: "credentials",
+      role: "Admin",
+    });
 
     return NextResponse.json(
       success({ id: user._id, name: user.name, email: user.email, role: user.role }, "Admin account created"),
       { status: 201 },
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("auth/register:", err);
-    return NextResponse.json(failure(err?.message), { status: 500 });
+    return NextResponse.json(failure(getErrorMessage(err)), { status: 500 });
   }
 }

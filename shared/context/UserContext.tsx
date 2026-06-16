@@ -1,12 +1,15 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { createClient } from "@/utils/supabase/client";
 
 export interface ILoggedinUser {
   id: string;
   name?: string;
   email: string;
   role?: string;
+  authProvider?: "credentials" | "google";
+  avatarUrl?: string;
 }
 
 interface IUserContext {
@@ -33,6 +36,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     try {
       localStorage.removeItem("se_user");
+      await createClient().auth.signOut();
       await fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" });
     } catch {}
   };
@@ -61,7 +65,14 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         const payload = await res.json();
         if (payload?.success && payload.data && mounted) {
           const s = payload.data;
-          const nextUser = { id: s.id ?? String(s._id), name: s.name, email: s.email, role: s.role };
+          const nextUser = {
+            id: s.id ?? String(s._id),
+            name: s.name,
+            email: s.email,
+            role: s.role,
+            authProvider: s.authProvider,
+            avatarUrl: s.avatarUrl,
+          };
           setUser(nextUser);
           localStorage.setItem("se_user", JSON.stringify(nextUser));
         }
