@@ -4,6 +4,17 @@ import { jwtVerify } from "jose";
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  if (pathname === "/" && req.nextUrl.searchParams.has("code")) {
+    const callbackUrl = new URL("/auth/callback", req.url);
+    req.nextUrl.searchParams.forEach((value, key) => {
+      callbackUrl.searchParams.set(key, value);
+    });
+    if (!callbackUrl.searchParams.has("next")) {
+      callbackUrl.searchParams.set("next", "/admin");
+    }
+    return NextResponse.redirect(callbackUrl);
+  }
+
   if (pathname.startsWith("/admin")) {
     const token = req.cookies.get("token")?.value;
 
@@ -28,5 +39,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/", "/admin/:path*"],
 };
