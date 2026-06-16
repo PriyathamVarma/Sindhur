@@ -30,6 +30,7 @@ A floating WhatsApp button appears on all public pages.
 | Middleware | Next.js Edge Middleware | `jose` `jwtVerify` (Edge Runtime compatible) |
 | Fonts | Google Fonts via next/font | DM Sans (body, `--font-sans`), Playfair Display (headings, `--font-display`) |
 | Icons | lucide-react (admin/auth) + inline SVGs (marketing) | |
+| Redis cache | @upstash/redis ^1.38.0 | REST client for Upstash Redis; `utils/redis.ts` |
 | Toasts | react-hot-toast | `<Toaster position="top-right" />` in root layout |
 | Slug util | Custom `slugify()` in `shared/lib/utils.tsx` | |
 
@@ -54,7 +55,10 @@ Sindhur/
 │   │   │   ├── page.tsx                      # Client: product list, filter tabs, publish/unpublish, edit/delete
 │   │   │   ├── new/page.tsx                  # Client: 8-section creation form, MultiImageUpload, dynamic spec rows, sticky save bar
 │   │   │   └── [id]/edit/page.tsx            # Client: edit form; URL param = MongoDB _id; fetches product by id or slug
-│   │   ├── rfq/page.tsx                      # Client: 8 status tabs, search bar, accordion rows, inline save
+│   │   ├── rfq/page.tsx                      # Client: fetches all 500 RFQs at once, filters client-side
+│   │   │                                     # Pipeline summary strip (6 stage cards + Won/Lost callout)
+│   │   │                                     # Status tabs with always-accurate counts
+│   │   │                                     # Expandable rows: buyer details, RFQ fields, status dropdown, notes, Email/WhatsApp/Delete
 │   │   ├── certifications/page.tsx           # Client: list + fixed right slide-in panel for add/edit; UploadInput for image
 │   │   ├── downloads/page.tsx                # Client: list + fixed right slide-in panel for add/edit; UploadInput for file; publish toggle
 │   │   ├── download-leads/page.tsx           # Client: view-only paginated table, email mailto links, delete
@@ -111,24 +115,28 @@ Sindhur/
 │   │       └── stats/route.tsx               # GET (JWT): Promise.all 11 queries → quotes, blog, rfq, downloadLeads counts + 5 recent quotes
 │   │
 │   ├── products/
-│   │   ├── page.tsx                          # Server Component: getProducts() → passes to <ProductCatalog initialProducts={...} />
-│   │   ├── [slug]/page.tsx                   # Server Component: generateMetadata + full product layout
-│   │   │                                     # Two-column: left=<ProductGallery />, right=info panel
-│   │   │                                     # Sections: specs table, packaging, export info, bottom CTA banner
+│   │   ├── page.tsx                          # Server Component: getProducts() → Redis cache → MongoDB directly (no self-HTTP)
+│   │   │                                     # Passes IProduct[] to <ProductCatalog initialProducts={...} />
+│   │   ├── [slug]/page.tsx                   # Server Component: getProduct(slug) → Redis cache → MongoDB directly
+│   │   │                                     # generateMetadata + full layout; lg:grid-cols-[1fr_420px]; sticky right panel
+│   │   │                                     # StatCell components (MOQ, Origin, Lead Time, HS Code, Shelf Life, Container)
+│   │   │                                     # Trust strip (15+ years / 50+ countries / 98% on-time)
+│   │   │                                     # Specs table with dark header; export info cards
 │   │   │                                     # WA pre-fill: "...I'm interested in importing ${product.name}..."
 │   │   │                                     # RFQ link: /request-quote?product=${encodeURIComponent(product.name)}
 │   │   └── [slug]/edit/page.tsx              # Server: redirect shim → /admin/products/${slug}/edit
 │   ├── request-quote/page.tsx                # Client: useSearchParams() in Suspense; pre-fills productInterested from ?product=
 │   │                                         # 3 sections: About You, Product Requirements, Additional Details
 │   │                                         # Sidebar: "What Happens Next?" + WA/email links
-│   ├── trust/page.tsx                        # Server: fetches /api/v1/certifications (dynamic); static STATIC_CERTS[] + QUALITY_STEPS[]
+│   ├── trust/page.tsx                        # Server: getTrusts() → Redis cache → CertificationModel direct query (no self-HTTP)
+│   │                                         # static STATIC_CERTS[] + QUALITY_STEPS[]
 │   │                                         # Sections: hero → DB certs grid → static regulatory → QA process → stats → CTA
 │   ├── downloads/page.tsx                    # Client: fetches /api/v1/downloads; TYPE_COLORS + TYPE_ICONS maps
 │   │                                         # Gated: shows modal → POST /api/v1/download-leads → receives fileUrl → window.open
 │   │                                         # Non-gated: direct window.open(item.fileUrl)
 │   ├── blog/
-│   │   ├── page.tsx                          # Server Component: fetch /api/v1/blog, render published grid
-│   │   └── [slug]/page.tsx                   # Server Component: generateMetadata + full post with prose classes
+│   │   ├── page.tsx                          # Server Component: Redis cache → BlogPostModel direct query (no self-HTTP)
+│   │   └── [slug]/page.tsx                   # Server Component: Redis cache → BlogPostModel direct query; generateMetadata
 │   │
 │   ├── layout.tsx                            # Root: fonts, UserProvider, Toaster, <WhatsAppButton /> (inside UserProvider)
 │   ├── page.tsx                              # Homepage: all section components + SEO metadata export
@@ -163,6 +171,11 @@ Sindhur/
 │   └── Footer.tsx                            # Server: FOOTER_LINKS{}, SOCIAL_LINKS[], CERTIFICATIONS[], copyright with Visakhapatnam
 │
 ├── utils/
+│   ├── redis.ts                              # Lazy-init Upstash Redis REST client
+│   │                                         # Exports: cacheGet<T>, cacheSet, cacheDel, CACHE_KEYS, TTL
+│   │                                         # CACHE_KEYS: PRODUCTS_LIST, PRODUCT(slug), BLOG_LIST, BLOG_POST(slug), CERTS_ACTIVE
+│   │                                         # TTL: { LIST: 300, DETAIL: 600 }
+│   │                                         # All ops wrapped in try/catch — missing env vars → no-op (graceful degradation)
 │   └── supabase/
 │       ├── client.ts                         # createBrowserClient() — import in Client Components
 │       ├── server.ts                         # createServerClient(cookieStore) — import in Server Components / API routes
@@ -220,6 +233,7 @@ Sindhur/
 {
   "@supabase/ssr": "^0.12.0",
   "@supabase/supabase-js": "^2.108.2",
+  "@upstash/redis": "^1.38.0",
   "bcryptjs": "^3.0.3",
   "jose": "^6.2.3",
   "jsonwebtoken": "^9.0.3",
@@ -239,7 +253,7 @@ Dev only: `@tailwindcss/postcss`, `@types/bcryptjs`, `@types/jsonwebtoken`, `@ty
 
 ## Data Flows
 
-### Public RFQ submission
+### Public RFQ submission + admin pipeline
 
 ```
 User fills /request-quote (Client Component, Suspense-wrapped)
@@ -249,17 +263,29 @@ User fills /request-quote (Client Component, Suspense-wrapped)
                        destinationPort?, packagingRequirements?, customRequirements?, message? }
   → validates required fields; creates with status: "new"
   → MongoDB collection: rfqs
-  → Admin views at /admin/rfq via GET /api/v1/rfq (JWT required)
-  → Admin changes status (new→contacted→negotiation→sample_sent→quotation_sent→won/lost)
-  → PATCH /api/v1/rfq/[id] { status, adminNotes } — only these two fields updatable
+
+Admin at /admin/rfq (Client Component)
+  → on mount: GET /api/v1/rfq?limit=500 (JWT) → all RFQs fetched once
+  → stored in allRFQs state; tabs + search filter client-side from this array
+  → tab count badges always show accurate counts (no re-fetch on tab switch)
+  → click row: expand accordion with all fields + inline status dropdown + adminNotes textarea
+  → Save Changes: PATCH /api/v1/rfq/[id] { status, adminNotes }
+                  → optimistic local state update (no full reload)
+  → Email button: mailto: pre-filled with buyer email + product subject
+  → WhatsApp button: wa.me/ deep-link with product context (only if phone present)
+  → Delete: DELETE /api/v1/rfq/[id] → removes from allRFQs state
+  → Refresh button: silent background re-fetch to pick up new submissions
 ```
 
-### Product catalog (hybrid SSR + client filtering)
+### Product catalog (hybrid SSR + client filtering + Redis cache)
 
 ```
 /products page (Server Component)
-  → getProducts() fetches ${NEXT_PUBLIC_APP_URL}/api/v1/products?limit=100
-  → returns IProduct[] (published only, no fullDescription or specifications)
+  → getProducts(): cacheGet(CACHE_KEYS.PRODUCTS_LIST)
+    → cache HIT: return cached IProduct[] directly (MongoDB skipped)
+    → cache MISS: await mongoDB() → ProductModel.find({status:"published"})
+                  .select("-fullDescription -specifications").limit(100).lean()
+                  → cacheSet(key, result, TTL.LIST=300s)
   → renders <ProductCatalog initialProducts={products} />
 
 ProductCatalog.tsx (Client Component)
@@ -269,10 +295,37 @@ ProductCatalog.tsx (Client Component)
   → renders ProductCard grid
 
 /products/[slug] page (Server Component)
-  → getProduct(slug) fetches ${NEXT_PUBLIC_APP_URL}/api/v1/products/${slug}
-  → returns full product including specifications
-  → generateMetadata() runs same fetch for SEO title/description/og
-  → renders: breadcrumb, ProductGallery (Client), info panel, specs table, CTA
+  → getProduct(slug): cacheGet(CACHE_KEYS.PRODUCT(slug))
+    → cache HIT: return cached full product
+    → cache MISS: await mongoDB() → ProductModel.findOne({slug, status:"published"}).lean()
+                  → cacheSet(key, result, TTL.DETAIL=600s)
+  → generateMetadata() calls same getProduct() (also cache-aware)
+  → renders: breadcrumb, ProductGallery (Client), StatCell grid, specs table,
+             trust strip, export info cards, WhatsApp CTA, RFQ link
+
+Cache invalidation (products):
+  POST /api/v1/products           → cacheDel(CACHE_KEYS.PRODUCTS_LIST)
+  PATCH /api/v1/products/[slug]   → cacheDel(PRODUCTS_LIST, PRODUCT(slug))
+  DELETE /api/v1/products/[slug]  → cacheDel(PRODUCTS_LIST, PRODUCT(slug))
+```
+
+### Blog + Trust page caching (same pattern as products)
+
+```
+/blog page (Server Component)
+  → cacheGet(CACHE_KEYS.BLOG_LIST) → HIT: return / MISS: BlogPostModel.find().lean()
+  → cacheSet(key, items, 300)
+
+/blog/[slug] page (Server Component)
+  → cacheGet(CACHE_KEYS.BLOG_POST(slug)) → HIT: return / MISS: BlogPostModel.findOne().lean()
+  → cacheSet(key, post, 600)
+
+/trust page (Server Component)
+  → cacheGet(CACHE_KEYS.CERTS_ACTIVE) → HIT: return / MISS: CertificationModel.find({status:"active"}).lean()
+  → cacheSet(key, certs, 300)
+
+Cache invalidation (blog): POST/PATCH/DELETE /api/v1/blog → cacheDel(BLOG_LIST[, BLOG_POST(slug)])
+Cache invalidation (certs): POST/PATCH/DELETE /api/v1/certifications → cacheDel(CERTS_ACTIVE)
 ```
 
 ### Supabase file upload flow
@@ -557,7 +610,7 @@ All responses use typed helpers from `app/api/v1/utils/responses.tsx`:
 | PATCH | `/api/v1/products/[slug]` | JWT | any `IProduct` fields | `findOneAndUpdate({ slug })` |
 | DELETE | `/api/v1/products/[slug]` | JWT | — | `findOneAndDelete({ slug })` |
 | POST | `/api/v1/rfq` | — | `{ buyerName, companyName, email, country, businessType, productInterested, ...rest }` | Creates with `status: "new"` |
-| GET | `/api/v1/rfq` | JWT | `?status=&country=&product=&search=&page=&limit=` | `product` is regex on `productInterested` |
+| GET | `/api/v1/rfq` | JWT | `?status=&country=&product=&search=&page=&limit=` | `product` is regex on `productInterested`; max `limit` = 500 |
 | PATCH | `/api/v1/rfq/[id]` | JWT | `{ status?, adminNotes? }` | Only these two fields |
 | DELETE | `/api/v1/rfq/[id]` | JWT | — | `findByIdAndDelete` |
 | GET | `/api/v1/certifications` | — / JWT | `?admin=true` | Public: active only |
@@ -627,6 +680,26 @@ Hero (bg-gray-950) → About (bg-white) → Products (bg-gray-50) → Global (bg
 ### Navbar Admin link
 
 The Admin link (`href="/admin"`) is **hardcoded** in `Navbar.tsx`, not in `NAV_LINKS` in `lib/data.ts`. Intentional — it renders with a distinct bordered style. The mobile hamburger does NOT show the Admin link.
+
+### Server Components do NOT self-fetch via HTTP
+
+All public Server Components (`/products`, `/products/[slug]`, `/blog`, `/blog/[slug]`, `/trust`) query MongoDB **directly** using Mongoose models — they do NOT call their own API routes over HTTP. This avoids the Vercel cold-start failure where `fetch("http://localhost:3000/api/v1/...")` would time-out or 404 in production.
+
+Pattern:
+```ts
+import { mongoDB } from "@/shared/lib/db/mongo";
+import ProductModel from "@/shared/models/mongodb/products/product";
+import { cacheGet, cacheSet, CACHE_KEYS, TTL } from "@/utils/redis";
+
+async function getData() {
+  const cached = await cacheGet(CACHE_KEYS.PRODUCTS_LIST);
+  if (cached) return cached;
+  await mongoDB();
+  const data = await ProductModel.find({status:"published"}).lean();
+  await cacheSet(CACHE_KEYS.PRODUCTS_LIST, data, TTL.LIST);
+  return data;
+}
+```
 
 ### Login page and `useSearchParams`
 
@@ -731,7 +804,7 @@ These are the homepage marketing cards in `PRODUCTS[]`. Separate from the MongoD
 - No `/api/v1/products/[id]` route — product API is slug-based, not id-based
 - No `/api/v1/rfq/[id]` GET — no single RFQ fetch by id
 - No `/api/v1/certifications/[id]` GET — no single cert fetch
-- No rate limiting (Redis/Upstash credentials in `.env.local` but zero wiring)
+- No rate limiting (Redis is wired for caching but NOT for rate limiting)
 - No email notifications (Brevo/Zoho credentials configured but no mailer implemented)
 - No roles beyond `"Admin"` (no Buyer, Manager, Farmer)
 - No `src/` directory — all files at project root
@@ -739,7 +812,7 @@ These are the homepage marketing cards in `PRODUCTS[]`. Separate from the MongoD
 - No i18n / locale routing
 - No dark mode toggle
 - No `/api/v1/blog/[id]` endpoint — blog API is slug-based only
-- No BullMQ workers or background jobs (Upstash credentials present but no queue wiring)
+- No BullMQ workers or background jobs (Upstash is used for Redis REST cache only, not queues)
 - No CI/CD configuration (no `.github/workflows/`, no Dockerfile)
 - The mobile Navbar does NOT include the Admin link (desktop-only)
 - The `/api/v1/blog` list endpoint always omits `content` — never returns full HTML in lists
@@ -759,7 +832,7 @@ These are the homepage marketing cards in `PRODUCTS[]`. Separate from the MongoD
 | `JWT_REFRESH_SECRET` | Reserved — not yet wired in any route |
 | `JWT_REFRESH_EXPIRES_IN` | Reserved — not yet wired in any route |
 | `BCRYPT_SALT_ROUNDS` | register route — `bcrypt.hash(password, rounds)` |
-| `NEXT_PUBLIC_APP_URL` | Server Components — `fetch(`${NEXT_PUBLIC_APP_URL}/api/v1/...`)` |
+| `NEXT_PUBLIC_APP_URL` | Reserved (set on Vercel for absolute URL needs); Server Components no longer self-fetch |
 | `NEXT_PUBLIC_APP_NAME` | App display name (e.g. `"Syndhur"`) |
 | `NEXT_PUBLIC_SUPABASE_URL` | `utils/supabase/client.ts`, `server.ts`, `middleware.ts` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Same as above — Supabase anon key |
@@ -768,7 +841,8 @@ These are the homepage marketing cards in `PRODUCTS[]`. Separate from the MongoD
 | `BREVO_*` | Email SMTP (Brevo/Sendinblue) — credentials present, no mailer wired |
 | `ZOHO_*` | Zoho SMTP — credentials present, not wired |
 | `EMAIL_FROM` | Sender name/address for future email feature |
-| `REDIS_URL` / `UPSTASH_*` | Rate limiting — credentials present, not yet wired |
+| `UPSTASH_REDIS_REST_URL` | `utils/redis.ts` — Upstash Redis REST endpoint for caching |
+| `UPSTASH_REDIS_REST_TOKEN` | `utils/redis.ts` — Upstash Redis REST token |
 
 > **Before going live:** Set `NEXT_PUBLIC_APP_URL` to the production domain. Ensure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set — uploads fail without them.
 

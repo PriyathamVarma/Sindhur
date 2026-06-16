@@ -54,6 +54,7 @@ The platform serves three audiences:
 | JWT (middleware/Edge) | jose | ^6.2.3 |
 | Icons (admin UI) | lucide-react | ^1.18.0 |
 | Markdown parsing | marked | ^18.0.5 |
+| Redis cache | @upstash/redis | ^1.38.0 |
 | Toast notifications | react-hot-toast | ^2.6.0 |
 | Fonts | Google Fonts via next/font | — |
 
@@ -188,6 +189,7 @@ Sindhur/
 │   └── Footer.tsx                      # Server: links, real contact info, social icons
 │
 ├── utils/
+│   ├── redis.ts                        # Lazy-init Upstash Redis client; cacheGet/cacheSet/cacheDel; CACHE_KEYS; TTL constants
 │   └── supabase/
 │       ├── client.ts                   # createBrowserClient() — used in Client Components
 │       ├── server.ts                   # createServerClient() — used in Server Components / API routes
@@ -489,7 +491,7 @@ See [Authentication](#authentication) and [Blog System](#blog-system) sections.
 - `?country=UAE`
 - `?product=coconut` — regex match on `productInterested`
 - `?search=` — matches `buyerName`, `companyName`, `email`
-- `?page=1&limit=20`
+- `?page=1&limit=20` — max `limit` is 500 (admin fetches up to 500 at once for client-side filtering)
 
 **Certifications** `GET /api/v1/certifications`
 - `?admin=true` — returns all statuses (requires JWT); else only `{ status: "active" }`
@@ -581,10 +583,12 @@ Each card links to its respective admin route.
 
 ### RFQ Pipeline (`/admin/rfq`)
 
-- 8 status tabs with live count badges: All / New / Contacted / Negotiation / Sample Sent / Quotation Sent / Won / Lost
-- Search bar (Enter to submit) — matches `buyerName`, `companyName`, `email`
-- Expandable accordion rows: buyer details grid, message, inline status dropdown + admin notes textarea, "Save Changes" button
-- Action buttons: Email (opens `mailto:` prefilled), WhatsApp (links to `wa.me/` prefilled), Delete
+- **Pipeline summary** — 6 stage cards (New → Quotation Sent) + Won/Lost callout strip at the top; each card is clickable to filter to that stage
+- **Status tabs** — All / New / Contacted / Negotiation / Sample Sent / Quotation Sent / Won / Lost; count badges are always accurate because all 500 RFQs are fetched once and filtered client-side
+- **Search** — real-time client-side match on `buyerName`, `companyName`, `email`, `productInterested`
+- **Expandable rows** — click any row to reveal: buyer details grid, RFQ fields (qty, price, port, incoterm, packaging), custom requirements, inline status dropdown, admin notes textarea
+- **Action buttons**: Save Changes (optimistic state update), Email (pre-filled `mailto:`), WhatsApp (`wa.me/` deep-link with product context), Delete
+- **Refresh button** — quiet background reload without flashing skeleton
 
 ### Product Management (`/admin/products`)
 
@@ -682,6 +686,53 @@ Default bucket: `products` (set via `NEXT_PUBLIC_SUPABASE_BUCKET`).
 
 ---
 
+## Redis Caching
+
+Public content is cached in **Upstash Redis** using a cache-aside pattern. MongoDB is skipped entirely on cache hits.
+
+### Cache layer — `utils/redis.ts`
+
+```ts
+export const CACHE_KEYS = {
+  PRODUCTS_LIST: "v1:products:published",
+  PRODUCT:       (slug: string) => `v1:product:${slug}`,
+  BLOG_LIST:     "v1:blog:published",
+  BLOG_POST:     (slug: string) => `v1:blog:${slug}`,
+  CERTS_ACTIVE:  "v1:certs:active",
+};
+export const TTL = { LIST: 300, DETAIL: 600 };  // seconds
+```
+
+### What is cached
+
+| Cache key | TTL | Invalidated by |
+|---|---|---|
+| `v1:products:published` | 5 min | Product create / update / delete |
+| `v1:product:<slug>` | 10 min | Product update / delete for that slug |
+| `v1:blog:published` | 5 min | Blog post create / update / delete |
+| `v1:blog:<slug>` | 10 min | Blog post update / delete for that slug |
+| `v1:certs:active` | 5 min | Certification create / update / delete |
+
+### Server page data fetching
+
+All public Server Components query MongoDB directly (no HTTP round-trip to own API) and use Redis as a read-through cache:
+
+```ts
+// Pattern used in app/products/page.tsx, app/blog/page.tsx, etc.
+const cached = await cacheGet<T>(CACHE_KEYS.X);
+if (cached) return cached;
+await mongoDB();
+const data = await Model.find(...).lean();
+await cacheSet(CACHE_KEYS.X, data, TTL.LIST);
+return data;
+```
+
+### Graceful degradation
+
+If `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are missing or Redis throws, all cache functions no-op. Pages continue to work by querying MongoDB directly.
+
+---
+
 ## WhatsApp Integration
 
 A floating sticky button component (`components/WhatsAppButton.tsx`) is added to `app/layout.tsx` and renders on every page. It reads `usePathname()` and hides itself on `/admin/*`, `/login`, `/register`, `/buyer` routes.
@@ -719,7 +770,8 @@ Product detail pages pre-fill the WA message with the specific product name:
 | `BREVO_HOST` / `BREVO_PORT` / `BREVO_USER` / `BREVO_PASS` | Brevo SMTP credentials |
 | `ZOHO_HOST` / `ZOHO_PORT` / `ZOHO_USER` / `ZOHO_PASS` | Zoho SMTP credentials (reserved) |
 | `EMAIL_FROM` | Sender name/address for outbound email |
-| `REDIS_URL` / `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Rate limiting — not yet wired |
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST endpoint — used by `utils/redis.ts` for caching |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token — required alongside `UPSTASH_REDIS_REST_URL` |
 
 > **Before going live:** Set `NEXT_PUBLIC_APP_URL` to your production domain. Ensure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set — uploads will fail without them.
 
