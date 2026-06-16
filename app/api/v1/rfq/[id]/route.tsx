@@ -4,9 +4,13 @@ import RFQModel from "@/shared/models/mongodb/rfq/rfq";
 import { verifyToken } from "../../utils/verifyToken";
 import { success, failure } from "../../utils/responses";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function PATCH(req: NextRequest, { params }: Ctx) {
   const auth = await verifyToken(req);
   if (auth instanceof NextResponse) return auth;
+
+  const { id } = await params;
 
   try {
     await mongoDB();
@@ -18,7 +22,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const rfq = await RFQModel.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: update },
       { new: true, runValidators: true }
     ).lean();
@@ -30,13 +34,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: Ctx) {
   const auth = await verifyToken(req);
   if (auth instanceof NextResponse) return auth;
 
+  const { id } = await params;
+
   try {
     await mongoDB();
-    const rfq = await RFQModel.findByIdAndDelete(params.id);
+    const rfq = await RFQModel.findByIdAndDelete(id);
     if (!rfq) return NextResponse.json(failure("RFQ not found"), { status: 404 });
     return NextResponse.json(success(null, "RFQ deleted"));
   } catch (err: any) {

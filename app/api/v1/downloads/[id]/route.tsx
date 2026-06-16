@@ -4,15 +4,19 @@ import DownloadModel from "@/shared/models/mongodb/downloads/download";
 import { verifyToken } from "../../utils/verifyToken";
 import { success, failure } from "../../utils/responses";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function PATCH(req: NextRequest, { params }: Ctx) {
   const auth = await verifyToken(req);
   if (auth instanceof NextResponse) return auth;
+
+  const { id } = await params;
 
   try {
     await mongoDB();
     const body = await req.json();
     const item = await DownloadModel.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: body },
       { new: true, runValidators: true }
     ).lean();
@@ -24,13 +28,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: Ctx) {
   const auth = await verifyToken(req);
   if (auth instanceof NextResponse) return auth;
 
+  const { id } = await params;
+
   try {
     await mongoDB();
-    const item = await DownloadModel.findByIdAndDelete(params.id);
+    const item = await DownloadModel.findByIdAndDelete(id);
     if (!item) return NextResponse.json(failure("Download item not found"), { status: 404 });
     return NextResponse.json(success(null, "Download item deleted"));
   } catch (err: any) {

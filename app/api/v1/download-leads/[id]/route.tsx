@@ -4,13 +4,17 @@ import DownloadLeadModel from "@/shared/models/mongodb/downloads/downloadLead";
 import { verifyToken } from "../../utils/verifyToken";
 import { success, failure } from "../../utils/responses";
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function DELETE(req: NextRequest, { params }: Ctx) {
   const auth = await verifyToken(req);
   if (auth instanceof NextResponse) return auth;
 
+  const { id } = await params;
+
   try {
     await mongoDB();
-    const lead = await DownloadLeadModel.findByIdAndDelete(params.id);
+    const lead = await DownloadLeadModel.findByIdAndDelete(id);
     if (!lead) return NextResponse.json(failure("Lead not found"), { status: 404 });
     return NextResponse.json(success(null, "Lead deleted"));
   } catch (err: any) {

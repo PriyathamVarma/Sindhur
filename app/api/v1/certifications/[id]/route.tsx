@@ -4,15 +4,19 @@ import CertificationModel from "@/shared/models/mongodb/certifications/certifica
 import { verifyToken } from "../../utils/verifyToken";
 import { success, failure } from "../../utils/responses";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function PATCH(req: NextRequest, { params }: Ctx) {
   const auth = await verifyToken(req);
   if (auth instanceof NextResponse) return auth;
+
+  const { id } = await params;
 
   try {
     await mongoDB();
     const body = await req.json();
     const cert = await CertificationModel.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: body },
       { new: true, runValidators: true }
     ).lean();
@@ -24,13 +28,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: Ctx) {
   const auth = await verifyToken(req);
   if (auth instanceof NextResponse) return auth;
 
+  const { id } = await params;
+
   try {
     await mongoDB();
-    const cert = await CertificationModel.findByIdAndDelete(params.id);
+    const cert = await CertificationModel.findByIdAndDelete(id);
     if (!cert) return NextResponse.json(failure("Certification not found"), { status: 404 });
     return NextResponse.json(success(null, "Certification deleted"));
   } catch (err: any) {

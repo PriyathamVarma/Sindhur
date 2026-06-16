@@ -14,8 +14,11 @@ async function getProduct(slug: string): Promise<IProduct | null> {
   }
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const product = await getProduct(params.slug);
+type Props = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getProduct(slug);
   if (!product) return { title: "Product Not Found — Sindhur Exports" };
   return {
     title:       `${product.name} — Sindhur Exports`,
@@ -31,8 +34,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
 const WA_NUMBER = "917330810209";
 
-export default async function ProductDetailPage({ params }: { params: { slug: string } }) {
-  const product = await getProduct(params.slug);
+export default async function ProductDetailPage({ params }: Props) {
+  const { slug } = await params;
+  const product = await getProduct(slug);
   if (!product) notFound();
 
   const waMsg = encodeURIComponent(
